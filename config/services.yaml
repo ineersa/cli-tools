@@ -18,3 +18,10 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+    PhpTui\Term\Terminal:
+        factory: [ 'PhpTui\Term\Terminal', 'new' ]
+
+    App\Agent\Agent:
+        arguments:
+            - '%env(APP_AGENT_MODEL)%'
+

@@ -20,7 +20,7 @@ enum Mode: string
         return match ($this) {
             self::Chat => self::Plan,
             self::Plan => self::Execution,
-            self::Execution => self::Chat
+            self::Execution => self::Chat,
         };
     }
 }

@@ -9,9 +9,7 @@ use App\Tui\Utility\TerminalUtilities;
 use PhpTui\Term\Event;
 use PhpTui\Term\Event\CodedKeyEvent;
 use PhpTui\Term\KeyCode;
-use PhpTui\Term\KeyModifiers;
 use PhpTui\Term\Terminal;
-use PhpTui\Tui\Color\AnsiColor;
 use PhpTui\Tui\Color\RgbColor;
 use PhpTui\Tui\Extension\Core\Widget\Block\Padding;
 use PhpTui\Tui\Extension\Core\Widget\BlockWidget;
@@ -21,13 +19,11 @@ use PhpTui\Tui\Extension\Core\Widget\ParagraphWidget;
 use PhpTui\Tui\Layout\Constraint;
 use PhpTui\Tui\Style\Style;
 use PhpTui\Tui\Text\Line;
-use PhpTui\Tui\Text\Span;
 use PhpTui\Tui\Text\Text;
 use PhpTui\Tui\Text\Title;
 use PhpTui\Tui\Widget\Borders;
 use PhpTui\Tui\Widget\Direction;
 use PhpTui\Tui\Widget\Widget;
-use SebastianBergmann\LinesOfCode\LinesOfCode;
 
 /**
  * A scrollable container that shows only the visible tail of a growing list of "cards".
@@ -35,6 +31,7 @@ use SebastianBergmann\LinesOfCode\LinesOfCode;
  */
 final class WindowedContentComponent implements Component
 {
+    public const CONTENT_HEIGHT = 30;
 
     /** top-of-viewport line offset from the very start (0 = top) */
     private int $scrollY = 0;
@@ -42,8 +39,9 @@ final class WindowedContentComponent implements Component
     /** true if user scrolled up; new cards won’t auto-stick to bottom */
     private bool $pinnedUp = false;
 
-
-    public function __construct(private State $state, private Terminal $terminal) {}
+    public function __construct(private State $state, private Terminal $terminal)
+    {
+    }
 
     public function build(): Widget
     {
@@ -52,7 +50,7 @@ final class WindowedContentComponent implements Component
 
         // 1) Measure any cards with unknown height for this width
         foreach ($this->state->getContentItems() as $contentItem) {
-            if ($contentItem->height === 0) {
+            if (0 === $contentItem->height) {
                 $contentItem->height = $this->measureTextHeight($contentItem, $viewportW);
             }
         }
@@ -70,12 +68,12 @@ final class WindowedContentComponent implements Component
 
         // 4) Render visible cards as a vertical grid of Paragraphs
         $constraints = [];
-        $widgets     = [];
+        $widgets = [];
 
         foreach ($visible as $row) {
-            $ci       = $row['item'];
-            $take     = $row['height'];          // render height (text + borders taken)
-            $skipText = $row['skipText'] ?? 0;
+            $ci = $row['item'];
+            $take = $row['height'];          // render height (text + borders taken)
+            $skipText = $row['skipText'];
 
             $pw = ParagraphWidget::fromLines(...$ci->text->lines)->style($ci->style);
             if ($skipText > 0) {
@@ -89,8 +87,12 @@ final class WindowedContentComponent implements Component
                     ->borders(Borders::ALL)
                     ->widget($pw);
 
-                if ($ci->title)      { $card->titles(Title::fromString($ci->title)); }
-                if ($ci->titleStyle) { $card->titleStyle($ci->titleStyle); }
+                if ($ci->title) {
+                    $card->titles(Title::fromString($ci->title));
+                }
+                if ($ci->titleStyle) {
+                    $card->titleStyle($ci->titleStyle);
+                }
                 if ($ci->borderColorHex) {
                     $card->borderStyle(Style::default()->fg(RgbColor::fromHex($ci->borderColorHex)));
                 }
@@ -151,7 +153,7 @@ final class WindowedContentComponent implements Component
             foreach ($line->spans as $span) {
                 $s .= $span->content;
             }
-            $lines += max(1, (int)ceil(mb_strlen($s) / max(1, $width)));
+            $lines += max(1, (int) ceil(mb_strlen($s) / max(1, $width)));
         }
 
         return $lines;
@@ -166,17 +168,20 @@ final class WindowedContentComponent implements Component
                 $h += 2; // borders
             }
         }
+
         return $h;
     }
 
     /**
-     * Given a line offset from top, return [cardIndex, skipLinesInsideThatCard]
+     * Given a line offset from top, return [cardIndex, skipLinesInsideThatCard].
+     *
+     * @return array{int, int}
      */
     private function locateStartCard(int $lineOffset): array
     {
         $acc = 0;
         foreach ($this->state->getContentItems() as $i => $contentItem) {
-            $textH  = max(1, $contentItem->height);
+            $textH = max(1, $contentItem->height);
             $chrome = $contentItem->hasBorders ? 2 : 0;
             $renderH = $textH + $chrome;
 
@@ -184,28 +189,31 @@ final class WindowedContentComponent implements Component
                 $offsetInCard = $lineOffset - $acc; // 0..renderH-1
                 $skipText = $offsetInCard - ($contentItem->hasBorders ? 1 : 0); // eat top border
                 $skipText = max(0, min($skipText, $textH - 1));
+
                 return [$i, $skipText];
             }
             $acc += $renderH;
         }
-        return [max(0, count($this->state->getContentItems()) - 1), 0];
+
+        return [max(0, \count($this->state->getContentItems()) - 1), 0];
     }
 
     /**
      * Collect visible slice (cards + partial first card) that fits into viewportH lines.
-     * @return list<array{item:ContentItem,height:int}>
+     *
+     * @return list<array{item:ContentItem,height:int,skipText:int}>
      */
     private function collectVisible(int $startIdx, int $skipInFirst, int $viewportH): array
     {
         $left = $viewportH;
-        $out  = [];
+        $out = [];
 
-        for ($i = $startIdx; $i < count($this->state->getContentItems()) && $left > 0; $i++) {
-            $ci        = $this->state->getContentItems()[$i];
-            $textH     = max(1, $ci->height);
+        for ($i = $startIdx; $i < \count($this->state->getContentItems()) && $left > 0; ++$i) {
+            $ci = $this->state->getContentItems()[$i];
+            $textH = max(1, $ci->height);
             $hasBorder = $ci->hasBorders;
 
-            $skipText  = ($i === $startIdx) ? max(0, $skipInFirst) : 0;
+            $skipText = ($i === $startIdx) ? max(0, $skipInFirst) : 0;
             $remainText = max(0, $textH - $skipText);
 
             // visible chrome: normally 2 (top+bottom) for bordered cards,
@@ -217,26 +225,27 @@ final class WindowedContentComponent implements Component
             }
 
             // how many render lines can we take?
-            $takeText   = min($remainText, max(0, $left - $visibleChrome));
+            $takeText = min($remainText, max(0, $left - $visibleChrome));
             $takeRender = $visibleChrome + $takeText;
 
             // edge: not even enough space for visible chrome
             if ($left < $visibleChrome) {
                 $takeRender = $left;
-                $takeText   = 0;
+                $takeText = 0;
             }
 
-            if ($takeRender <= 0) break;
+            if ($takeRender <= 0) {
+                break;
+            }
 
             $out[] = ['item' => $ci, 'height' => $takeRender, 'skipText' => $skipText];
             $left -= $takeRender;
         }
 
-        if ($out === []) {
+        if ([] === $out) {
             $out[] = ['item' => ContentItemFactory::make(ContentItemFactory::EMPTY_ITEM), 'height' => 1, 'skipText' => 0];
         }
+
         return $out;
     }
-
-
 }

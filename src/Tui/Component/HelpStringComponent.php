@@ -1,8 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Component;
 
-use App\Tui\Component\Component;
 use PhpTui\Term\Event;
 use PhpTui\Tui\Color\AnsiColor;
 use PhpTui\Tui\Extension\Core\Widget\ParagraphWidget;
@@ -12,7 +13,10 @@ use PhpTui\Tui\Widget\Widget;
 
 class HelpStringComponent implements Component
 {
+    public const HEIGHT = 1;
+
     private const HELP_STRING = 'Enter = newline/accept · Ctrl+D = submit · Arrows ←→↑↓ · Ctrl+C quits · Ctrl+Y = delete line · Esc+Esc = clear · PgUp/PgDown = scroll content';
+
     public function build(): Widget
     {
         return ParagraphWidget::fromText(

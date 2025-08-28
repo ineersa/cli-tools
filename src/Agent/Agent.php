@@ -24,17 +24,17 @@ class Agent
         return $this->model;
     }
 
-    public function setMode(Mode $mode): Agent
+    public function setMode(Mode $mode): self
     {
         $this->mode = $mode;
+
         return $this;
     }
 
-    public function setModel(string $model): Agent
+    public function setModel(string $model): self
     {
         $this->model = $model;
+
         return $this;
     }
-
-
 }

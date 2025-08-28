@@ -1,12 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Component;
 
 use PhpTui\Tui\Color\AnsiColor;
 use PhpTui\Tui\Color\RgbColor;
 use PhpTui\Tui\Style\Style;
 use PhpTui\Tui\Text\Line;
-use PhpTui\Tui\Text\Span;
 use PhpTui\Tui\Text\Text;
 
 class ContentItemFactory
@@ -44,7 +45,8 @@ class ContentItemFactory
                 style: Style::default()->fg(AnsiColor::Green),
                 hasBorders: true,
                 borderColorHex: '#88E788'
-            )
+            ),
+            default => throw new \LogicException('Not implemented card type'),
         };
     }
 }

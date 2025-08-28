@@ -8,71 +8,50 @@ use App\Agent\Agent;
 use App\Tui\Command\Runner;
 use App\Tui\Component\AutocompleteComponent;
 use App\Tui\Component\Component;
-use App\Tui\Component\ContentItem;
 use App\Tui\Component\ContentItemFactory;
 use App\Tui\Component\DynamicIslandComponent;
 use App\Tui\Component\HeaderComponentItems;
 use App\Tui\Component\HelpStringComponent;
 use App\Tui\Component\InputComponent;
 use App\Tui\Component\StatusComponent;
-use App\Tui\Component\UserCardComponent;
 use App\Tui\Component\WindowedContentComponent;
 use App\Tui\Exception\UserInterruptException;
 use App\Tui\Utility\InputUtilities;
 use App\Tui\Utility\TerminalUtilities;
-use PhpTui\Term\Actions;
-use PhpTui\Term\ClearType;
 use PhpTui\Term\Event\CharKeyEvent;
 use PhpTui\Term\Event\CodedKeyEvent;
-use PhpTui\Term\KeyCode;
 use PhpTui\Term\KeyModifiers;
 use PhpTui\Term\Terminal;
-use PhpTui\Term\TerminalInformation\Size;
-use PhpTui\Tui\Bridge\PhpTerm\PhpTermBackend as PhpTuiPhpTermBackend;
-use PhpTui\Tui\Display\Backend;
-use PhpTui\Tui\Display\Display;
-use PhpTui\Tui\DisplayBuilder;
-use PhpTui\Tui\Extension\Bdf\BdfExtension;
-use PhpTui\Tui\Extension\Core\Widget\BlockWidget;
 use PhpTui\Tui\Extension\Core\Widget\GridWidget;
-use PhpTui\Tui\Extension\Core\Widget\ParagraphWidget;
-use PhpTui\Tui\Extension\Core\Widget\TabsWidget;
-use PhpTui\Tui\Extension\ImageMagick\ImageMagickExtension;
-use PhpTui\Tui\Layout\Constraint;
-use PhpTui\Tui\Style\Style;
-use PhpTui\Tui\Text\Line;
-use PhpTui\Tui\Text\Text;
-use PhpTui\Tui\Widget\Borders;
 use PhpTui\Tui\Widget\Direction;
 use PhpTui\Tui\Widget\Widget;
-use Symfony\Component\EventDispatcher\EventDispatcherInterface;
-use Throwable;
+
 final class Application
 {
     private function __construct(
         private readonly Terminal $terminal,
-        private readonly array    $components,
+        private readonly Layout $layout,
         public readonly State $state,
-        public readonly Runner $runner
+        public readonly Runner $runner,
     ) {
     }
 
     public static function new(Terminal $terminal, Agent $agent, State $state, Runner $runner): self
     {
-        $components = [
-            WindowedContentComponent::class => new WindowedContentComponent($state, $terminal),
-            AutocompleteComponent::class => new AutocompleteComponent($state, $terminal),
-            HelpStringComponent::class => new HelpStringComponent(),
-            InputComponent::class => new InputComponent($state, $terminal),
-            DynamicIslandComponent::class => new DynamicIslandComponent($state),
-            StatusComponent::class => new StatusComponent($state)
-        ];
+        $layout = new Layout(
+            windowedContentComponent: new WindowedContentComponent($state, $terminal),
+            autocompleteComponent: new AutocompleteComponent($state, $terminal),
+            statusComponent: new StatusComponent($state),
+            helpStringComponent: new HelpStringComponent(),
+            dynamicIslandComponent: new DynamicIslandComponent($state),
+            inputComponent: new InputComponent($state, $terminal),
+        );
         $state->pushContentItem(HeaderComponentItems::getLogo());
         $state->pushContentItem(HeaderComponentItems::getTips());
 
         return new self(
             $terminal,
-            $components,
+            $layout,
             $state,
             $runner
         );
@@ -87,11 +66,11 @@ final class Application
         while (null !== $event = $this->terminal->events()->next()) {
             if ($event instanceof CharKeyEvent) {
                 // Ctrl+C -> exit
-                if ($event->char === 'c' && KeyModifiers::CONTROL === $event->modifiers) {
+                if ('c' === $event->char && KeyModifiers::CONTROL === $event->modifiers) {
                     throw new UserInterruptException();
                 }
                 // Ctrl+D -> submit
-                if ($event->char === 'd' && KeyModifiers::CONTROL === $event->modifiers) {
+                if ('d' === $event->char && KeyModifiers::CONTROL === $event->modifiers) {
                     if (empty($this->state->getInput())
                         || empty(trim($this->state->getInput()))
                     ) {
@@ -109,14 +88,15 @@ final class Application
                     $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::USER_CARD, $this->state->getInput()));
                     $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $this->state->getInput()));
 
-                    $this->components[InputComponent::class]->clearAll();
-                    $this->components[AutocompleteComponent::class]->recomputeAutocomplete(resetCursor:true);
+                    $this->layout->inputComponent->clearAll();
+                    $this->layout->autocompleteComponent->recomputeAutocomplete(resetCursor: true);
                     continue;
                 }
+                // Processing char here because it's used later for input and autocomplete
                 if ($this->state->isEditing()) {
                     // Accept multi-char bursts (paste), keep ASCII & newlines
                     $chunk = InputUtilities::sanitizePaste($event->char);
-                    if ($chunk !== '') {
+                    if ('' !== $chunk) {
                         InputUtilities::insertText($chunk, $this->state);
                         InputUtilities::ensureCaretVisible($this->state, $this->terminal);
                         InputUtilities::updateStickyFromIndex($this->state);
@@ -124,9 +104,9 @@ final class Application
                 }
             }
             if ($event instanceof CodedKeyEvent) {
-
             }
-            foreach ($this->components as $component) {
+
+            foreach ($this->layout->getComponents() as $component) {
                 $component->handle($event);
             }
         }
@@ -134,40 +114,30 @@ final class Application
 
     public function layout(): Widget
     {
-        [$wrapped,,] =
+        [$wrapped] =
             InputUtilities::wrapTextAndLocateCaret(
                 $this->state->getInput(),
                 $this->state->getCharIndex(),
                 TerminalUtilities::getTerminalInnerWidth($this->terminal)
             );
-        $total = max(1, count($wrapped));
-        $inputHeight = max(1, min(InputComponent::MAX_VISIBLE_LINES, $total));
-        // TODO we should catch resize and recalculate it
-        $contentH = 30;
-        $termH = max(5, $this->terminal->info(Size::class)->lines ?? $contentH);
-        $dynIslandH = 5;
-        $helpH = 1;
-        $inputH = 2 + $inputHeight;
-        $acH = AutocompleteComponent::MAX_ROWS_VISIBLE + 1;
-        $statusH = 1;
-        
+        $total = max(1, \count($wrapped));
+        $inputHeight = 2 + max(1, min(InputComponent::MAX_VISIBLE_LINES, $total));
+
+        $contentH = WindowedContentComponent::CONTENT_HEIGHT;
+        // TODO recalculate on resizes?
         $this->state->setContentViewportHeight($contentH);
+
         return
             GridWidget::default()
                 ->direction(Direction::Vertical)
                 ->constraints(
-                    Constraint::length($contentH),
-                    Constraint::length($acH),
-                    Constraint::length($helpH),
-                    Constraint::length($inputH),
-                    Constraint::min($dynIslandH),
-                    Constraint::length($statusH)
+                    ...$this->layout->getConstraints($inputHeight)
                 )
                 ->widgets(...array_map(
                     function (Component $component) {
                         return $component->build();
                     },
-                    $this->components
+                    $this->layout->getComponents()
                 ));
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Component;
 
 use App\Tui\State;
@@ -26,11 +28,11 @@ class AutocompleteComponent implements Component
     public const COMMANDS = [
         ['name' => '/help',    'desc' => 'show help and available commands'],
         ['name' => '/chat',    'desc' => 'manage conversation history', 'followup' => [
-            'list'            => 'show list of chats',
-            'delete #'    => 'delete chat #123',
-            'restore #'   => 'restore chat #123, will use *COMPACT* version',
+            'list' => 'show list of chats',
+            'delete #' => 'delete chat #123',
+            'restore #' => 'restore chat #123, will use *COMPACT* version',
             'restore-full #' => 'restore chat #123, will use *FULL* version',
-            'clear'           => 'delete all chats',
+            'clear' => 'delete all chats',
         ]],
         ['name' => '/compact', 'desc' => 'compact current chat'],
         ['name' => '/clear',   'desc' => 'clear the screen and history, starts new chat'],
@@ -76,7 +78,7 @@ class AutocompleteComponent implements Component
                     ->items(...$items)
                     ->state($this->acState)
                     ->highlightStyle(Style::default()->fg(AnsiColor::LightCyan))
-                    ->highlightSymbol("·> ")
+                    ->highlightSymbol('·> ')
             );
     }
 
@@ -84,14 +86,15 @@ class AutocompleteComponent implements Component
     {
         if ($event instanceof CharKeyEvent) {
             // Tab may arrive as literal "\t"
-            if ($event->char === "\t" && $this->state->isAcOpen()) {
+            if ("\t" === $event->char && $this->state->isAcOpen()) {
                 $this->acceptAutocomplete();
+
                 return;
             }
             if ($this->state->isEditing()) {
                 // Accept multi-char bursts (paste), keep ASCII & newlines
                 $chunk = InputUtilities::sanitizePaste($event->char);
-                if ($chunk !== '') {
+                if ('' !== $chunk) {
                     $this->recomputeAutocomplete(resetCursor: true);
                 }
             }
@@ -100,20 +103,23 @@ class AutocompleteComponent implements Component
 
             if ($this->state->isEditing()) {
                 // When autocomplete is open, intercept Up/Down/Enter/Tab
-                if ($this->state->isAcOpen() && $code === KeyCode::Up) {
+                if ($this->state->isAcOpen() && KeyCode::Up === $code) {
                     $this->acMoveSelection(-1);
+
                     return;
                 }
-                if ($this->state->isAcOpen() && $code === KeyCode::Down) {
+                if ($this->state->isAcOpen() && KeyCode::Down === $code) {
                     $this->acMoveSelection(1);
+
                     return;
                 }
-                if ($this->state->isAcOpen() && ($code === KeyCode::Enter || $code === KeyCode::Tab)) {
+                if ($this->state->isAcOpen() && (KeyCode::Enter === $code || KeyCode::Tab === $code)) {
                     $this->acceptAutocomplete();
+
                     return;
                 }
 
-                if ($code === KeyCode::Esc && str_starts_with($this->state->getInput(), '/')) {
+                if (KeyCode::Esc === $code && str_starts_with($this->state->getInput(), '/')) {
                     // Close AC on ESC
                     $this->state->setInput('');
                     $this->state->setCharIndex(0);
@@ -122,7 +128,7 @@ class AutocompleteComponent implements Component
                     $this->recomputeAutocomplete(resetCursor: true);
                 }
 
-                if ($code === KeyCode::Backspace) {
+                if (KeyCode::Backspace === $code) {
                     $this->recomputeAutocomplete(resetCursor: true);
                 }
             }
@@ -135,6 +141,7 @@ class AutocompleteComponent implements Component
 
         if (!str_starts_with($input, '/')) {
             $this->closeAc();
+
             return;
         }
 
@@ -143,40 +150,45 @@ class AutocompleteComponent implements Component
 
         // CASE 1: No base match yet -> show top-level commands filtered by entire query after '/'
         $matched = $this->findCommandByName($baseCmd);
-        if ($matched === null) {
+        if (null === $matched) {
             $this->acTitle = 'Commands · Enter/Tab to accept';
             $this->filterTopLevel($input);
-            $this->state->setAcOpen(count($this->acFiltered) > 0);
+            $this->state->setAcOpen(\count($this->acFiltered) > 0);
             $this->syncCursorAfterRecompute($resetCursor);
+
             return;
         }
 
         // CASE 2: We have a base match and (optional) follow-ups
-        if (isset($matched['followup']) && \is_array($matched['followup'])) {
-            $this->acTitle = sprintf('Follow-ups for %s · Enter/Tab to accept', $matched['name']);
+        if (isset($matched['followup'])) {
+            $this->acTitle = \sprintf('Follow-ups for %s · Enter/Tab to accept', $matched['name']);
             $this->filterFollowups($matched['name'], $matched['followup'], $tail);
-            $this->state->setAcOpen(count($this->acFiltered) > 0);
+            $this->state->setAcOpen(\count($this->acFiltered) > 0);
             $this->syncCursorAfterRecompute($resetCursor);
+
             return;
         }
 
         // CASE 3: Base has no follow-ups -> keep showing other commands if user is still typing (fallback)
         $this->acTitle = 'Commands · Enter/Tab to accept';
         $this->filterTopLevel($input);
-        $this->state->setAcOpen(count($this->acFiltered) > 0);
+        $this->state->setAcOpen(\count($this->acFiltered) > 0);
         $this->syncCursorAfterRecompute($resetCursor);
     }
 
     /** FULL ACCEPT: replace input with selected item + space (works for commands and follow-ups) */
     private function acceptAutocomplete(): void
     {
-        if (!$this->state->isAcOpen() || $this->acState->selected === null) return;
+        if (!$this->state->isAcOpen() || null === $this->acState->selected) {
+            return;
+        }
         $sel = $this->acFiltered[$this->acState->selected]['name'] ?? '';
-        if ($sel === '') return;
-
+        if ('' === $sel) {
+            return;
+        }
 
         $this->state->setInput(str_ends_with($sel, '#') ? $sel : $sel.' ');
-        $this->state->setCharIndex(\mb_strlen($this->state->getInput()));
+        $this->state->setCharIndex(mb_strlen($this->state->getInput()));
         $this->state->setScrollTopLine(0);
 
         // Recompute so that, if there are deeper follow-ups in the future, they’d show;
@@ -202,17 +214,20 @@ class AutocompleteComponent implements Component
 
     private function acMoveSelection(int $delta): void
     {
-        if (!$this->state->isAcOpen() || $this->acState->selected === null) return;
+        if (!$this->state->isAcOpen() || null === $this->acState->selected) {
+            return;
+        }
 
-        $count = count($this->acFiltered);
+        $count = \count($this->acFiltered);
         $this->acState->selected = max(0, min($count - 1, $this->acState->selected + $delta));
         $this->acClampOffset();
     }
 
     private function acClampOffset(): void
     {
-        if ($this->acState->selected === null) {
+        if (null === $this->acState->selected) {
             $this->acState->offset = 0;
+
             return;
         }
         $sel = $this->acState->selected;
@@ -223,18 +238,18 @@ class AutocompleteComponent implements Component
         } elseif ($sel >= $off + self::MAX_ROWS_VISIBLE) {
             $off = $sel - self::MAX_ROWS_VISIBLE + 1;
         }
-        $maxOff = max(0, count($this->acFiltered) - self::MAX_ROWS_VISIBLE);
+        $maxOff = max(0, \count($this->acFiltered) - self::MAX_ROWS_VISIBLE);
         $this->acState->offset = max(0, min($off, $maxOff));
     }
 
     private function syncCursorAfterRecompute(bool $resetCursor): void
     {
         if ($this->state->isAcOpen()) {
-            if ($resetCursor || $this->acState->selected === null) {
+            if ($resetCursor || null === $this->acState->selected) {
                 $this->acState->selected = 0;
                 $this->acState->offset = 0;
             } else {
-                $this->acState->selected = min($this->acState->selected, count($this->acFiltered) - 1);
+                $this->acState->selected = min($this->acState->selected, \count($this->acFiltered) - 1);
                 $this->acClampOffset();
             }
         } else {
@@ -245,26 +260,31 @@ class AutocompleteComponent implements Component
 
     /**
      * Parses "/chat foo bar" -> ['/chat', 'foo']
-     * If only "/cha" -> ['/cha', '']
+     * If only "/cha" -> ['/cha', ''].
+     *
+     * @return array{string, string}
      */
     private function parseSlashCommand(string $input): array
     {
         $raw = ltrim($input, '/');
-        if ($raw === '') {
+        if ('' === $raw) {
             return ['/', ''];
         }
         $spacePos = mb_strpos($raw, ' ');
-        if ($spacePos === false) {
+        if (false === $spacePos) {
             // Typing the base: "/cha"
             return ['/'.trim($raw), ''];
         }
         $base = '/'.trim(mb_substr($raw, 0, $spacePos));
-        $tail = trim(explode(" ", mb_substr($raw, $spacePos + 1))[0] ?? '');
+        $tail = trim(explode(' ', mb_substr($raw, $spacePos + 1))[0]);
+
         return [$base, $tail];
     }
 
     /**
-     * Finds exact command by its "/name" (case-insensitive)
+     * Finds exact command by its "/name" (case-insensitive).
+     *
+     * @return array{name: string, desc: string, followup?: string[]}|null
      */
     private function findCommandByName(string $base): ?array
     {
@@ -274,11 +294,12 @@ class AutocompleteComponent implements Component
                 return $c;
             }
         }
+
         return null;
     }
 
     /**
-     * Filters top-level COMMANDS by whatever the user has after '/'
+     * Filters top-level COMMANDS by whatever the user has after '/'.
      */
     private function filterTopLevel(string $input): void
     {
@@ -287,8 +308,8 @@ class AutocompleteComponent implements Component
 
         $filtered = [];
         foreach (self::COMMANDS as $c) {
-            $inName = $q === '' || str_contains(mb_strtolower($c['name']), $qLower);
-            $inDesc = $q === '' || str_contains(mb_strtolower($c['desc']), $qLower);
+            $inName = '' === $q || str_contains(mb_strtolower($c['name']), $qLower);
+            $inDesc = '' === $q || str_contains(mb_strtolower($c['desc']), $qLower);
             if ($inName || $inDesc) {
                 $filtered[] = $c;
             }
@@ -297,7 +318,7 @@ class AutocompleteComponent implements Component
     }
 
     /**
-     * Builds follow-up choices like "/chat list", "/chat clear", … and filters by $tail
+     * Builds follow-up choices like "/chat list", "/chat clear", … and filters by $tail.
      *
      * @param array<string,string> $followups
      */
@@ -307,9 +328,9 @@ class AutocompleteComponent implements Component
         $out = [];
         foreach ($followups as $fName => $desc) {
             $full = trim($baseName.' '.$fName);
-            if ($tail === '' ||
-                str_contains(mb_strtolower($fName), $tailLower) ||
-                str_contains(mb_strtolower($desc), $tailLower)
+            if ('' === $tail
+                || str_contains(mb_strtolower($fName), $tailLower)
+                || str_contains(mb_strtolower($desc), $tailLower)
             ) {
                 $out[] = ['name' => $full, 'desc' => $desc];
             }

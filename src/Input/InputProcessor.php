@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Input;
 
 class InputProcessor
 {
-
     /**
      * @var resource
      */
@@ -14,9 +15,9 @@ class InputProcessor
 
     public function __construct()
     {
-        $this->stdin = fopen('php://stdin', 'rb');
+        $this->stdin = fopen('php://stdin', 'r');
         if (!$this->stdin) {
-            throw new \RuntimeException("Unable to open stdin");
+            throw new \RuntimeException('Unable to open stdin');
         }
         stream_set_blocking($this->stdin, true);
     }
@@ -33,34 +34,45 @@ class InputProcessor
 
     public function closeStdin(): void
     {
-        if (is_resource($this->stdin)) {
+        if (\is_resource($this->stdin)) {
             fclose($this->stdin);
         }
     }
 
     /**
-     * TODO
-     * @return string
+     * TODO.
      */
     public function readKey(): string
     {
         $c = fgetc($this->stdin);
-        if ($c === false) return 'NONE';
+        if (false === $c) {
+            return 'NONE';
+        }
 
-        $ord = ord($c);
+        $ord = \ord($c);
 
-        if ($c === "\r" || $c === "\n") return 'ENTER';
+        if ("\r" === $c || "\n" === $c) {
+            return 'ENTER';
+        }
 
-        if ($ord === 4)  return 'CTRL_D';
-        if ($ord === 3)  return 'CTRL_C';
-        if ($ord === 14) return 'CTRL_N';
+        if (4 === $ord) {
+            return 'CTRL_D';
+        }
+        if (3 === $ord) {
+            return 'CTRL_C';
+        }
+        if (14 === $ord) {
+            return 'CTRL_N';
+        }
 
-        if ($ord === 127 || $ord === 8) return 'BACKSPACE';
+        if (127 === $ord || 8 === $ord) {
+            return 'BACKSPACE';
+        }
 
-        if ($c === "\033") {
+        if ("\033" === $c) {
             $n1 = fgetc($this->stdin);
             $n2 = fgetc($this->stdin);
-            if ($n1 === '[') {
+            if ('[' === $n1) {
                 return match ($n2) {
                     'A' => 'UP',
                     'B' => 'DOWN',
@@ -69,13 +81,17 @@ class InputProcessor
                     default => 'ESC',
                 };
             }
+
             return 'ESC';
         }
 
-        if ($ord === 9) return 'TAB';
+        if (9 === $ord) {
+            return 'TAB';
+        }
 
         if ($ord >= 32 && $ord <= 126) {
             $this->inputBuffer .= $c;
+
             return 'CHAR';
         }
 

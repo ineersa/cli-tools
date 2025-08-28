@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Component;
 
 use App\Tui\State;
@@ -17,19 +19,21 @@ use PhpTui\Tui\Widget\Widget;
 
 class StatusComponent implements Component
 {
+    public const HEIGHT = 1;
+
     private string $cwd;
+
     public function __construct(
         private State $state,
-    )
-    {
+    ) {
         $this->cwd = getcwd() ?: '~';
     }
 
     public function build(): Widget
     {
         $statusLeft = ParagraphWidget::fromText(Text::fromString($this->cwd)->cyan());
-        $statusCenter = ParagraphWidget::fromText(Text::fromString($this->state->getMode()->value . ' (Shift+Tab)')->red());
-        $statusRight = ParagraphWidget::fromText(Text::fromString($this->state->getModel() . ' 100%')->green());
+        $statusCenter = ParagraphWidget::fromText(Text::fromString($this->state->getMode()->value.' (Shift+Tab)')->red());
+        $statusRight = ParagraphWidget::fromText(Text::fromString($this->state->getModel().' 100%')->green());
 
         $statusGrid = GridWidget::default()
             ->direction(Direction::Horizontal)

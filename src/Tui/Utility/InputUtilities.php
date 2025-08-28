@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Utility;
 
 use App\Tui\Component\InputComponent;
@@ -10,6 +12,7 @@ class InputUtilities
 {
     /**
      * Soft-wrap $text to $width and compute caret (line,col) in the wrapped output.
+     *
      * @return array{0:list<string>,1:int,2:int} [$lines, $caretLine, $caretCol]
      */
     public static function wrapTextAndLocateCaret(string $text, int $caretIdx, int $width): array
@@ -19,17 +22,17 @@ class InputUtilities
         // simulate up to caret to find wrapped caret position
         $line = 0;
         $col = 0;
-        $n = strlen($text);
+        $n = \strlen($text);
 
-        for ($i = 0; $i < $caretIdx; $i++) {
+        for ($i = 0; $i < $caretIdx; ++$i) {
             $ch = $text[$i];
-            if ($ch === "\n") {
-                $line++;
+            if ("\n" === $ch) {
+                ++$line;
                 $col = 0;
             } else {
-                $col++;
+                ++$col;
                 if ($col >= $width) {
-                    $line++;
+                    ++$line;
                     $col = 0;
                 }
             }
@@ -41,9 +44,9 @@ class InputUtilities
         $out = [];
         $buf = '';
         $col = 0;
-        for ($i = 0; $i < $n; $i++) {
+        for ($i = 0; $i < $n; ++$i) {
             $ch = $text[$i];
-            if ($ch === "\n") {
+            if ("\n" === $ch) {
                 $out[] = $buf;
                 $buf = '';
                 $col = 0;
@@ -51,7 +54,7 @@ class InputUtilities
                 continue;
             }
             $buf .= $ch;
-            $col++;
+            ++$col;
             if ($col >= $width) {
                 $out[] = $buf;
                 $buf = '';
@@ -59,9 +62,6 @@ class InputUtilities
             }
         }
         $out[] = $buf; // push last (even if empty)
-        if ($out === []) {
-            $out = [''];
-        }
 
         return [$out, $cLine, $cCol];
     }
@@ -73,10 +73,10 @@ class InputUtilities
         $text = str_replace("\r", "\n", $text);
         $out = '';
         $n = \strlen($text);
-        for ($i = 0; $i < $n; $i++) {
+        for ($i = 0; $i < $n; ++$i) {
             $c = $text[$i];
             $o = \ord($c);
-            if ($c === "\n" || $c === "\t" || ($o >= 32 && $o <= 126)) {
+            if ("\n" === $c || "\t" === $c || ($o >= 32 && $o <= 126)) {
                 $out .= $c;
             }
         }
@@ -86,7 +86,7 @@ class InputUtilities
 
     public static function ensureCaretVisible(State $state, Terminal $terminal): void
     {
-        [$wrapped, $cLine, ] = InputUtilities::wrapTextAndLocateCaret(
+        [$wrapped, $cLine] = self::wrapTextAndLocateCaret(
             $state->getInput(),
             $state->getCharIndex(),
             TerminalUtilities::getTerminalInnerWidth($terminal)
@@ -99,25 +99,25 @@ class InputUtilities
             $state->setScrollTopLine($cLine - $max + 1);
         }
 
-        $total = count($wrapped);
+        $total = \count($wrapped);
         $state->setScrollTopLine(max(0, min($state->getScrollTopLine(), max(0, $total - $max))));
     }
 
     public static function updateStickyFromIndex(State $state): void
     {
-        [$lineStarts,] = self::lineIndexing($state);
+        [$lineStarts] = self::lineIndexing($state);
         [, $col] = self::cursorLineCol($lineStarts, $state);
         $state->setStickyCol($col);
     }
 
     /**
      * @return array{0: list<int>, 1: list<string>}
-     *   lineStarts: char-index of each line start (hard lines)
-     *   lines:      lines split by "\n" (ASCII)
+     *                                              lineStarts: char-index of each line start (hard lines)
+     *                                              lines:      lines split by "\n" (ASCII)
      */
     public static function lineIndexing(State $state): array
     {
-        $lines = \explode("\n", $state->getInput());
+        $lines = explode("\n", $state->getInput());
         $starts = [];
         $idx = 0;
         foreach ($lines as $i => $line) {
@@ -125,26 +125,21 @@ class InputUtilities
             // +1 for newline except after last line
             $idx += \strlen($line) + 1;
         }
-        if ($lines === []) {
-            $lines = [''];
-            $starts = [0];
-        }
-        if (!str_ends_with($state->getInput(), "\n")) {
-            $idx--; // cancel the last +1
-        }
 
         return [$starts, $lines];
     }
 
     /**
      * Convert absolute charIndex -> (line, col) in hard-line space.
+     *
      * @param list<int> $lineStarts
+     *
      * @return array{0:int,1:int}
      */
     public static function cursorLineCol(array $lineStarts, State $state): array
     {
         $line = 0;
-        for ($i = 0; $i < count($lineStarts); $i++) {
+        for ($i = 0; $i < \count($lineStarts); ++$i) {
             if ($lineStarts[$i] > $state->getCharIndex()) {
                 break;
             }
@@ -158,15 +153,18 @@ class InputUtilities
     public static function insertText(string $text, State $state): void
     {
         [$l, $r] = self::splitAtCharIndex($state);
-        $state->setInput($l . $text . $r);
-        $state->setCharIndex($state->getCharIndex() + \mb_strlen($text));
+        $state->setInput($l.$text.$r);
+        $state->setCharIndex($state->getCharIndex() + mb_strlen($text));
     }
 
+    /**
+     * @return array{string, string}
+     */
     public static function splitAtCharIndex(State $state): array
     {
         $idx = $state->getCharIndex();
-        $idx = max(0, min($idx, \mb_strlen($state->getInput())));
+        $idx = max(0, min($idx, mb_strlen($state->getInput())));
 
-        return [\substr($state->getInput(), 0, $idx), \substr($state->getInput(), $idx)];
+        return [substr($state->getInput(), 0, $idx), substr($state->getInput(), $idx)];
     }
 }

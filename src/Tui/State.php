@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui;
 
 use App\Agent\Agent;
@@ -8,10 +10,11 @@ use App\Events\ModeChangedEvent;
 use App\Tui\Component\Component;
 use App\Tui\Component\ConstraintAwareComponent;
 use App\Tui\Component\ContentItem;
+use App\Tui\Component\WindowedContentComponent;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
- * State should only modify it's own properties and dispatch events if needed
+ * State should only modify it's own properties and dispatch events if needed.
  */
 class State
 {
@@ -31,7 +34,7 @@ class State
 
     private bool $acOpen = false; // if autocomplete active and open at moment
 
-    private int $contentViewportHeight = 30;
+    private int $contentViewportHeight = WindowedContentComponent::CONTENT_HEIGHT;
 
     /**
      * @var array<ContentItem>
@@ -155,11 +158,17 @@ class State
         return $this;
     }
 
+    /**
+     * @return ContentItem[]
+     */
     public function getContentItems(): array
     {
         return $this->contentItems;
     }
 
+    /**
+     * @param ContentItem[] $contentItems
+     */
     public function setContentItems(array $contentItems): void
     {
         $this->contentItems = $contentItems;
@@ -185,6 +194,7 @@ class State
 
     /**
      * @param array<Component&ConstraintAwareComponent> $dynamicIslandComponents
+     *
      * @return $this
      */
     public function setDynamicIslandComponents(array $dynamicIslandComponents): static

@@ -12,7 +12,7 @@ use PhpTui\Tui\Widget\Widget;
 
 class HelpStringComponent implements Component
 {
-    private const HELP_STRING = 'Enter = newline/accept · Ctrl+D = submit · Arrows ←→↑↓ · Ctrl+C quits · Ctrl+Y = delete line · Esc+Esc = clear';
+    private const HELP_STRING = 'Enter = newline/accept · Ctrl+D = submit · Arrows ←→↑↓ · Ctrl+C quits · Ctrl+Y = delete line · Esc+Esc = clear · PgUp/PgDown = scroll content';
     public function build(): Widget
     {
         return ParagraphWidget::fromText(

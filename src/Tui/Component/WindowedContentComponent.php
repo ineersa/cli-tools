@@ -26,6 +26,7 @@ use PhpTui\Tui\Text\Title;
 use PhpTui\Tui\Widget\Borders;
 use PhpTui\Tui\Widget\Direction;
 use PhpTui\Tui\Widget\Widget;
+use SebastianBergmann\LinesOfCode\LinesOfCode;
 
 /**
  * A scrollable container that shows only the visible tail of a growing list of "cards".
@@ -77,10 +78,11 @@ final class WindowedContentComponent implements Component
         foreach ($visible as $item) {
             $constraints[] = Constraint::length($item['height']);
             if ($item['item']->prefixSpan && $item['item']->originalString) {
-                $widgets[] = ParagraphWidget::fromSpans(
-                    $item['item']->prefixSpan,
-                    Span::fromString($item['item']->originalString)
-                        ->style($item['item']->style));
+                $firstLine = $item['item']->text->lines[0];
+                $otherLines = array_slice($item['item']->text->lines, 1);
+                $spanLine = Line::fromSpans($item['item']->prefixSpan, ...$firstLine->spans);
+
+                $widgets[] = ParagraphWidget::fromLines($spanLine, ...$otherLines);
             } else {
                 $widgets[] = ParagraphWidget::fromText($item['item']->text)->style($item['item']->style);
             }
@@ -182,17 +184,19 @@ final class WindowedContentComponent implements Component
                 // we keep full Text but reduce the accounted height.
                 $visibleH = max(0, $height - $skipInFirst);
                 if ($visibleH <= 0) continue;
+                $take = min($left, $visibleH);
                 $out[] = [
                     'item' => $contentItem,
                     'height' => min($left, $visibleH)
                 ];
-                $left -= $visibleH;
+                $left -= $take;
             } else {
                 $out[] = [
                     'item' => $contentItem,
                     'height' => min($left, $height)
                 ];
-                $left -= $height;
+                $take = min($left, $height);
+                $left -= $take;
             }
         }
 

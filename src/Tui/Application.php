@@ -89,7 +89,9 @@ final class Application
                 }
                 // Ctrl+D -> submit
                 if ($event->char === 'd' && KeyModifiers::CONTROL === $event->modifiers) {
-                    if (empty($this->state->getInput())) {
+                    if (empty($this->state->getInput())
+                        || empty(trim($this->state->getInput()))
+                    ) {
                         continue;
                     }
                     if (str_starts_with($this->state->getInput(), '/')) {

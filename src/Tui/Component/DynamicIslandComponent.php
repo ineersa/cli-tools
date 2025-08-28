@@ -14,7 +14,7 @@ use PhpTui\Tui\Widget\Borders;
 use PhpTui\Tui\Widget\Direction;
 use PhpTui\Tui\Widget\Widget;
 
-class DynamicIsland implements Component
+class DynamicIslandComponent implements Component
 {
 
     public function __construct(

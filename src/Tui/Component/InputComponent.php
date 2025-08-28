@@ -28,12 +28,7 @@ use PhpTui\Tui\Widget\Widget;
 
 final class InputComponent implements Component
 {
-    private bool $editing = true;        // always focused
     public const MAX_VISIBLE_LINES = 5; // input viewport height (wrapped)
-
-    /** @var list<string> */
-    private array $messages = [];
-
     private ?float $lastEscTime = null;
 
     public function __construct(
@@ -69,19 +64,18 @@ final class InputComponent implements Component
                 $this->deleteCurrentLine();
                 return;
             }
-            // Accept multi-char bursts (paste), keep ASCII & newlines
-            $chunk = InputUtilities::sanitizePaste($event->char);
-            if ($chunk !== '') {
-                $this->insertText($chunk);
-                InputUtilities::updateStickyFromIndex($this->state);
-            }
         } elseif ($event instanceof CodedKeyEvent) {
             $code = $event->code;
 
             if ($this->state->isEditing()) {
                 if ($code === KeyCode::Enter) {
+                    // If AC is open, we don't add new line
+                    if ($this->state->isAcOpen()) {
+                        return;
+                    }
                     // Enter inserts newline (not submit)
-                    $this->insertText("\n");
+                    InputUtilities::insertText("\n", $this->state);
+                    InputUtilities::ensureCaretVisible($this->state, $this->terminal);
                     InputUtilities::updateStickyFromIndex($this->state);
                 } elseif ($code === KeyCode::Backspace) {
                     $this->deleteCharLeft();
@@ -128,27 +122,12 @@ final class InputComponent implements Component
         return implode("\n", $out);
     }
 
-    private function insertText(string $text): void
-    {
-        [$l, $r] = $this->splitAtCharIndex($this->state->getCharIndex());
-        $this->state->setInput($l . $text . $r);
-        $this->state->setCharIndex($this->state->getCharIndex() + \mb_strlen($text));
-        InputUtilities::ensureCaretVisible($this->state, $this->terminal);
-    }
-
-    private function splitAtCharIndex(int $idx): array
-    {
-        $idx = max(0, min($idx, \mb_strlen($this->state->getInput())));
-
-        return [\substr($this->state->getInput(), 0, $idx), \substr($this->state->getInput(), $idx)];
-    }
-
     private function deleteCharLeft(): void
     {
         if ($this->state->getCharIndex() === 0) {
             return;
         }
-        [$l, $r] = $this->splitAtCharIndex($this->state->getCharIndex());
+        [$l, $r] = InputUtilities::splitAtCharIndex($this->state);
         $l = \substr($l, 0, \strlen($l) - 1);
         $this->state->setInput($l . $r);
         $this->state->setCharIndex($this->state->getCharIndex() - 1);
@@ -169,8 +148,8 @@ final class InputComponent implements Component
 
     private function moveUp(): void
     {
-        [$lineStarts, $lines] = $this->lineIndexing();
-        [$curLine, $curCol] = $this->cursorLineCol($lineStarts);
+        [$lineStarts, $lines] = InputUtilities::lineIndexing($this->state);
+        [$curLine, $curCol] = InputUtilities::cursorLineCol($lineStarts, $this->state);
 
         $sticky = $this->state->getStickyCol();
         $sticky = $sticky ?: $curCol;
@@ -184,8 +163,8 @@ final class InputComponent implements Component
 
     private function moveDown(): void
     {
-        [$lineStarts, $lines] = $this->lineIndexing();
-        [$curLine, $curCol] = $this->cursorLineCol($lineStarts);
+        [$lineStarts, $lines] = InputUtilities::lineIndexing($this->state);
+        [$curLine, $curCol] = InputUtilities::cursorLineCol($lineStarts, $this->state);
 
         $this->state->setStickyCol($this->state->getStickyCol() ?: $curCol);
         $targetLine = min(count($lines) - 1, $curLine + 1);
@@ -194,55 +173,10 @@ final class InputComponent implements Component
         InputUtilities::ensureCaretVisible($this->state, $this->terminal);
     }
 
-    /**
-     * @return array{0: list<int>, 1: list<string>}
-     *   lineStarts: char-index of each line start (hard lines)
-     *   lines:      lines split by "\n" (ASCII)
-     */
-    private function lineIndexing(): array
-    {
-        $lines = \explode("\n", $this->state->getInput());
-        $starts = [];
-        $idx = 0;
-        foreach ($lines as $i => $line) {
-            $starts[$i] = $idx;
-            // +1 for newline except after last line
-            $idx += \strlen($line) + 1;
-        }
-        if ($lines === []) {
-            $lines = [''];
-            $starts = [0];
-        }
-        if (!str_ends_with($this->state->getInput(), "\n")) {
-            $idx--; // cancel the last +1
-        }
-
-        return [$starts, $lines];
-    }
-
-    /**
-     * Convert absolute charIndex -> (line, col) in hard-line space.
-     * @param list<int> $lineStarts
-     * @return array{0:int,1:int}
-     */
-    private function cursorLineCol(array $lineStarts): array
-    {
-        $line = 0;
-        for ($i = 0; $i < count($lineStarts); $i++) {
-            if ($lineStarts[$i] > $this->state->getCharIndex()) {
-                break;
-            }
-            $line = $i;
-        }
-        $col = $this->state->getCharIndex() - $lineStarts[$line];
-
-        return [$line, $col];
-    }
-
     private function deleteCurrentLine(): void
     {
-        [$lineStarts, $lines] = $this->lineIndexing();
-        [$curLine, ] = $this->cursorLineCol($lineStarts);
+        [$lineStarts, $lines] = InputUtilities::lineIndexing($this->state);
+        [$curLine, ] = InputUtilities::cursorLineCol($lineStarts, $this->state);
 
         $before = substr($this->state->getInput(), 0, $lineStarts[$curLine]);
         $after = '';

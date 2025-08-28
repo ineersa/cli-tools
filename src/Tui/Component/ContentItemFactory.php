@@ -3,6 +3,7 @@
 namespace App\Tui\Component;
 
 use PhpTui\Tui\Color\AnsiColor;
+use PhpTui\Tui\Color\RgbColor;
 use PhpTui\Tui\Style\Style;
 use PhpTui\Tui\Text\Line;
 use PhpTui\Tui\Text\Span;
@@ -24,14 +25,19 @@ class ContentItemFactory
             self::USER_CARD => new ContentItem(
                 text: Text::fromString($input),
                 style: Style::default()->fg(AnsiColor::DarkGray),
-                hasBorders: true
+                hasBorders: true,
+                borderColorHex: '#90FCCF',
+                title: 'You',
+                titleStyle: Style::default()->fg(RgbColor::fromHex('#90FCCF')),
             ),
             self::RESPONSE_CARD => new ContentItem(
                 text: Text::fromString($input),
                 style: Style::default(),
-                hasBorders: false,
-                prefixSpan: Span::fromString(' * ')->style(Style::default()->fg(AnsiColor::LightYellow)),
+                hasBorders: true,
+                borderColorHex: '#FFDE21',
                 originalString: $input,
+                title: 'Response',
+                titleStyle: Style::default()->fg(RgbColor::fromHex('#FFDE21')),
             ),
             self::COMMAND_CARD => new ContentItem(
                 text: Text::fromString($input),

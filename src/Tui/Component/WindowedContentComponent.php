@@ -12,6 +12,7 @@ use PhpTui\Term\KeyCode;
 use PhpTui\Term\KeyModifiers;
 use PhpTui\Term\Terminal;
 use PhpTui\Tui\Color\AnsiColor;
+use PhpTui\Tui\Color\RgbColor;
 use PhpTui\Tui\Extension\Core\Widget\Block\Padding;
 use PhpTui\Tui\Extension\Core\Widget\BlockWidget;
 use PhpTui\Tui\Extension\Core\Widget\CompositeWidget;
@@ -34,8 +35,6 @@ use SebastianBergmann\LinesOfCode\LinesOfCode;
  */
 final class WindowedContentComponent implements Component
 {
-    /** @var list<array{t:Text,h:int}> */
-    private array $cards = [];
 
     /** top-of-viewport line offset from the very start (0 = top) */
     private int $scrollY = 0;
@@ -43,20 +42,18 @@ final class WindowedContentComponent implements Component
     /** true if user scrolled up; new cards won’t auto-stick to bottom */
     private bool $pinnedUp = false;
 
-    /** chrome lines inside our block (borders/titles/padding) */
-    private int $chrome = 2; // top + bottom border;
 
     public function __construct(private State $state, private Terminal $terminal) {}
 
     public function build(): Widget
     {
-        $viewportH = max(1, $this->state->getContentViewportHeight() - $this->chrome);
+        $viewportH = max(1, $this->state->getContentViewportHeight());
         $viewportW = max(10, TerminalUtilities::getTerminalInnerWidth($this->terminal));
 
         // 1) Measure any cards with unknown height for this width
         foreach ($this->state->getContentItems() as $contentItem) {
             if ($contentItem->height === 0) {
-                $contentItem->height = $this->measureTextHeight($contentItem->text, $viewportW);
+                $contentItem->height = $this->measureTextHeight($contentItem, $viewportW);
             }
         }
         // 2) If not pinned up, keep scrollY at bottom
@@ -75,16 +72,31 @@ final class WindowedContentComponent implements Component
         $constraints = [];
         $widgets     = [];
 
-        foreach ($visible as $item) {
-            $constraints[] = Constraint::length($item['height']);
-            if ($item['item']->prefixSpan && $item['item']->originalString) {
-                $firstLine = $item['item']->text->lines[0];
-                $otherLines = array_slice($item['item']->text->lines, 1);
-                $spanLine = Line::fromSpans($item['item']->prefixSpan, ...$firstLine->spans);
+        foreach ($visible as $row) {
+            $ci       = $row['item'];
+            $take     = $row['height'];          // render height (text + borders taken)
+            $skipText = $row['skipText'] ?? 0;
 
-                $widgets[] = ParagraphWidget::fromLines($spanLine, ...$otherLines);
+            $pw = ParagraphWidget::fromLines(...$ci->text->lines)->style($ci->style);
+            if ($skipText > 0) {
+                $pw->scroll = [$skipText, 0]; // scroll within TEXT, borders unaffected
+            }
+
+            $constraints[] = Constraint::length($take);
+
+            if ($ci->hasBorders) {
+                $card = BlockWidget::default()
+                    ->borders(Borders::ALL)
+                    ->widget($pw);
+
+                if ($ci->title)      { $card->titles(Title::fromString($ci->title)); }
+                if ($ci->titleStyle) { $card->titleStyle($ci->titleStyle); }
+                if ($ci->borderColorHex) {
+                    $card->borderStyle(Style::default()->fg(RgbColor::fromHex($ci->borderColorHex)));
+                }
+                $widgets[] = $card;
             } else {
-                $widgets[] = ParagraphWidget::fromText($item['item']->text)->style($item['item']->style);
+                $widgets[] = $pw;
             }
         }
 
@@ -109,8 +121,8 @@ final class WindowedContentComponent implements Component
             return;
         }
 
-        $page = max(1, $this->state->getContentViewportHeight() - $this->chrome - 1);
-        $maxTop = max(0, $this->totalHeight() - max(1, $this->state->getContentViewportHeight() - $this->chrome));
+        $page = max(1, $this->state->getContentViewportHeight() - 1);
+        $maxTop = max(0, $this->totalHeight() - max(1, $this->state->getContentViewportHeight()));
 
         switch ($event->code) {
             case KeyCode::PageUp:
@@ -126,17 +138,22 @@ final class WindowedContentComponent implements Component
 
     // ---- helpers ----
 
-    private function measureTextHeight(Text $t, int $width): int
+    private function measureTextHeight(ContentItem $contentItem, int $width): int
     {
         // naive wrapping: count "soft" line wraps by splitting spans to plain strings.
         $lines = 0;
-        foreach ($t->lines as $line) {
+        // account borders
+        if ($contentItem->hasBorders) {
+            $width -= 2;
+        }
+        foreach ($contentItem->text->lines as $line) {
             $s = '';
             foreach ($line->spans as $span) {
                 $s .= $span->content;
             }
             $lines += max(1, (int)ceil(mb_strlen($s) / max(1, $width)));
         }
+
         return $lines;
     }
 
@@ -145,6 +162,9 @@ final class WindowedContentComponent implements Component
         $h = 0;
         foreach ($this->state->getContentItems() as $contentItem) {
             $h += max(1, $contentItem->height);
+            if ($contentItem->hasBorders) {
+                $h += 2; // borders
+            }
         }
         return $h;
     }
@@ -156,13 +176,18 @@ final class WindowedContentComponent implements Component
     {
         $acc = 0;
         foreach ($this->state->getContentItems() as $i => $contentItem) {
-            $h = max(1, $contentItem->height);
-            if ($lineOffset < $acc + $h) {
-                return [$i, $lineOffset - $acc];
+            $textH  = max(1, $contentItem->height);
+            $chrome = $contentItem->hasBorders ? 2 : 0;
+            $renderH = $textH + $chrome;
+
+            if ($lineOffset < $acc + $renderH) {
+                $offsetInCard = $lineOffset - $acc; // 0..renderH-1
+                $skipText = $offsetInCard - ($contentItem->hasBorders ? 1 : 0); // eat top border
+                $skipText = max(0, min($skipText, $textH - 1));
+                return [$i, $skipText];
             }
-            $acc += $h;
+            $acc += $renderH;
         }
-        // past end: show last card from its last line
         return [max(0, count($this->state->getContentItems()) - 1), 0];
     }
 
@@ -176,36 +201,39 @@ final class WindowedContentComponent implements Component
         $out  = [];
 
         for ($i = $startIdx; $i < count($this->state->getContentItems()) && $left > 0; $i++) {
-            $contentItem = $this->state->getContentItems()[$i];
-            $height = max(1, $contentItem->height);
+            $ci        = $this->state->getContentItems()[$i];
+            $textH     = max(1, $ci->height);
+            $hasBorder = $ci->hasBorders;
 
-            if ($i === $startIdx && $skipInFirst > 0) {
-                // We need to trim top lines of the first card. For simplicity,
-                // we keep full Text but reduce the accounted height.
-                $visibleH = max(0, $height - $skipInFirst);
-                if ($visibleH <= 0) continue;
-                $take = min($left, $visibleH);
-                $out[] = [
-                    'item' => $contentItem,
-                    'height' => min($left, $visibleH)
-                ];
-                $left -= $take;
-            } else {
-                $out[] = [
-                    'item' => $contentItem,
-                    'height' => min($left, $height)
-                ];
-                $take = min($left, $height);
-                $left -= $take;
+            $skipText  = ($i === $startIdx) ? max(0, $skipInFirst) : 0;
+            $remainText = max(0, $textH - $skipText);
+
+            // visible chrome: normally 2 (top+bottom) for bordered cards,
+            // but if the top border has scrolled off (first card with skipText>0),
+            // only the bottom border remains visible -> 1.
+            $visibleChrome = 0;
+            if ($hasBorder) {
+                $visibleChrome = ($i === $startIdx && $skipText > 0) ? 1 : 2;
             }
+
+            // how many render lines can we take?
+            $takeText   = min($remainText, max(0, $left - $visibleChrome));
+            $takeRender = $visibleChrome + $takeText;
+
+            // edge: not even enough space for visible chrome
+            if ($left < $visibleChrome) {
+                $takeRender = $left;
+                $takeText   = 0;
+            }
+
+            if ($takeRender <= 0) break;
+
+            $out[] = ['item' => $ci, 'height' => $takeRender, 'skipText' => $skipText];
+            $left -= $takeRender;
         }
 
-        // If nothing, push an empty spacer to keep block height sane
         if ($out === []) {
-            $out[] = [
-                'item' => ContentItemFactory::make(ContentItemFactory::EMPTY_ITEM),
-                'height' => 1
-            ];
+            $out[] = ['item' => ContentItemFactory::make(ContentItemFactory::EMPTY_ITEM), 'height' => 1, 'skipText' => 0];
         }
         return $out;
     }

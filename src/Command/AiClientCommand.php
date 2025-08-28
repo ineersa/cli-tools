@@ -11,6 +11,7 @@ use App\Render\Layout;
 use App\Render\RenderProcessor;
 use App\Render\Utils;
 use App\Tui\Application;
+use App\Tui\Command\Runner;
 use App\Tui\State;
 use App\Tui\Utility\InputUtilities;
 use App\Tui\Utility\TerminalUtilities;
@@ -43,6 +44,7 @@ final class AiClientCommand extends Command
         private Agent $agent,
         private EventDispatcherInterface $eventDispatcher,
         private State $state,
+        private Runner $runner,
     )
     {
         parent::__construct();
@@ -59,7 +61,7 @@ final class AiClientCommand extends Command
         $display = DisplayBuilder::default(PhpTuiPhpTermBackend::new($this->terminal))
             ->addExtension(new BdfExtension())
             ->build();
-        $tuiApplication = Application::new($this->terminal, $this->agent, $this->state);
+        $tuiApplication = Application::new($this->terminal, $this->agent, $this->state, $this->runner);
         try {
             // enable "raw" mode to remove default terminal behavior (e.g.
             // echoing key presses)

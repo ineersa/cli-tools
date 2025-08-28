@@ -7,6 +7,7 @@ namespace App\Agent;
 class Agent
 {
     private Mode $mode;
+
     public function __construct(
         private string $model,
     ) {

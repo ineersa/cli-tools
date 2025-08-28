@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace App\Tui;
 
 use App\Agent\Agent;
+use App\Tui\Command\Runner;
 use App\Tui\Component\AutocompleteComponent;
 use App\Tui\Component\Component;
 use App\Tui\Component\ContentItem;
 use App\Tui\Component\ContentItemFactory;
-use App\Tui\Component\DynamicIsland;
+use App\Tui\Component\DynamicIslandComponent;
 use App\Tui\Component\HeaderComponentItems;
 use App\Tui\Component\HelpStringComponent;
 use App\Tui\Component\InputComponent;
@@ -51,18 +52,19 @@ final class Application
     private function __construct(
         private readonly Terminal $terminal,
         private readonly array    $components,
-        public readonly State $state
+        public readonly State $state,
+        public readonly Runner $runner
     ) {
     }
 
-    public static function new(Terminal $terminal, Agent $agent, State $state): self
+    public static function new(Terminal $terminal, Agent $agent, State $state, Runner $runner): self
     {
         $components = [
             WindowedContentComponent::class => new WindowedContentComponent($state, $terminal),
-            DynamicIsland::class => new DynamicIsland($state),
+            AutocompleteComponent::class => new AutocompleteComponent($state, $terminal),
             HelpStringComponent::class => new HelpStringComponent(),
             InputComponent::class => new InputComponent($state, $terminal),
-            AutocompleteComponent::class => new AutocompleteComponent($state, $terminal),
+            DynamicIslandComponent::class => new DynamicIslandComponent($state),
             StatusComponent::class => new StatusComponent($state)
         ];
         $state->pushContentItem(HeaderComponentItems::getLogo());
@@ -72,6 +74,7 @@ final class Application
             $terminal,
             $components,
             $state,
+            $runner
         );
     }
 
@@ -96,7 +99,9 @@ final class Application
                     }
                     if (str_starts_with($this->state->getInput(), '/')) {
                         // resolve command
-                        $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::COMMAND_CARD, $this->state->getInput()));
+                        $this->state->pushContentItem(
+                            ContentItemFactory::make(ContentItemFactory::COMMAND_CARD, $this->state->getInput())
+                        );
                         continue;
                     }
 
@@ -107,6 +112,15 @@ final class Application
                     $this->components[InputComponent::class]->clearAll();
                     $this->components[AutocompleteComponent::class]->recomputeAutocomplete(resetCursor:true);
                     continue;
+                }
+                if ($this->state->isEditing()) {
+                    // Accept multi-char bursts (paste), keep ASCII & newlines
+                    $chunk = InputUtilities::sanitizePaste($event->char);
+                    if ($chunk !== '') {
+                        InputUtilities::insertText($chunk, $this->state);
+                        InputUtilities::ensureCaretVisible($this->state, $this->terminal);
+                        InputUtilities::updateStickyFromIndex($this->state);
+                    }
                 }
             }
             if ($event instanceof CodedKeyEvent) {
@@ -131,23 +145,22 @@ final class Application
         // TODO we should catch resize and recalculate it
         $contentH = 30;
         $termH = max(5, $this->terminal->info(Size::class)->lines ?? $contentH);
-        $dynIslandH = 10;
+        $dynIslandH = 5;
         $helpH = 1;
         $inputH = 2 + $inputHeight;
         $acH = AutocompleteComponent::MAX_ROWS_VISIBLE + 1;
         $statusH = 1;
-
-        $contentViewport = max(1, $termH - ($dynIslandH + $helpH + $inputH + $acH + $statusH));
-        $this->state->setContentViewportHeight($contentViewport);
+        
+        $this->state->setContentViewportHeight($contentH);
         return
             GridWidget::default()
                 ->direction(Direction::Vertical)
                 ->constraints(
                     Constraint::length($contentH),
-                    Constraint::length($dynIslandH),
+                    Constraint::length($acH),
                     Constraint::length($helpH),
                     Constraint::length($inputH),
-                    Constraint::length($acH),
+                    Constraint::min($dynIslandH),
                     Constraint::length($statusH)
                 )
                 ->widgets(...array_map(

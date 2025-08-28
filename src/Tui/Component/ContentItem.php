@@ -34,8 +34,9 @@ class ContentItem
         public readonly Style $style,
         public readonly bool $hasBorders = false,
         public readonly string $borderColorHex = '#90FCCF',
-        public readonly ?Span $prefixSpan = null,
         public readonly ?string $originalString = null,
+        public readonly ?string $title = null,
+        public readonly ?Style $titleStyle = null,
     ) {}
 
 }

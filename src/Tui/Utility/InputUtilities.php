@@ -115,7 +115,7 @@ class InputUtilities
      *   lineStarts: char-index of each line start (hard lines)
      *   lines:      lines split by "\n" (ASCII)
      */
-    private static function lineIndexing(State $state): array
+    public static function lineIndexing(State $state): array
     {
         $lines = \explode("\n", $state->getInput());
         $starts = [];
@@ -141,7 +141,7 @@ class InputUtilities
      * @param list<int> $lineStarts
      * @return array{0:int,1:int}
      */
-    private static function cursorLineCol(array $lineStarts, State $state): array
+    public static function cursorLineCol(array $lineStarts, State $state): array
     {
         $line = 0;
         for ($i = 0; $i < count($lineStarts); $i++) {
@@ -153,5 +153,20 @@ class InputUtilities
         $col = $state->getCharIndex() - $lineStarts[$line];
 
         return [$line, $col];
+    }
+
+    public static function insertText(string $text, State $state): void
+    {
+        [$l, $r] = self::splitAtCharIndex($state);
+        $state->setInput($l . $text . $r);
+        $state->setCharIndex($state->getCharIndex() + \mb_strlen($text));
+    }
+
+    public static function splitAtCharIndex(State $state): array
+    {
+        $idx = $state->getCharIndex();
+        $idx = max(0, min($idx, \mb_strlen($state->getInput())));
+
+        return [\substr($state->getInput(), 0, $idx), \substr($state->getInput(), $idx)];
     }
 }

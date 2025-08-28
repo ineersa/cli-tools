@@ -18,7 +18,7 @@ class HelpStringComponent implements Component
         return ParagraphWidget::fromText(
             Text::fromString(self::HELP_STRING),
         )
-            ->style(Style::default()->fg(AnsiColor::LightBlue));
+            ->style(Style::default()->fg(AnsiColor::DarkGray));
     }
 
     public function handle(Event $event): void

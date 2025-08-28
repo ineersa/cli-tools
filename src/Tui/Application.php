@@ -7,13 +7,18 @@ namespace App\Tui;
 use App\Agent\Agent;
 use App\Tui\Component\AutocompleteComponent;
 use App\Tui\Component\Component;
-use App\Tui\Component\ContentComponent;
+use App\Tui\Component\ContentItem;
+use App\Tui\Component\ContentItemFactory;
+use App\Tui\Component\DynamicIsland;
+use App\Tui\Component\HeaderComponentItems;
 use App\Tui\Component\HelpStringComponent;
 use App\Tui\Component\InputComponent;
 use App\Tui\Component\StatusComponent;
-use App\Tui\Exceptions\UserInterruptException;
-use App\Tui\Utilities\InputUtilities;
-use App\Tui\Utilities\TerminalUtilities;
+use App\Tui\Component\UserCardComponent;
+use App\Tui\Component\WindowedContentComponent;
+use App\Tui\Exception\UserInterruptException;
+use App\Tui\Utility\InputUtilities;
+use App\Tui\Utility\TerminalUtilities;
 use PhpTui\Term\Actions;
 use PhpTui\Term\ClearType;
 use PhpTui\Term\Event\CharKeyEvent;
@@ -21,6 +26,7 @@ use PhpTui\Term\Event\CodedKeyEvent;
 use PhpTui\Term\KeyCode;
 use PhpTui\Term\KeyModifiers;
 use PhpTui\Term\Terminal;
+use PhpTui\Term\TerminalInformation\Size;
 use PhpTui\Tui\Bridge\PhpTerm\PhpTermBackend as PhpTuiPhpTermBackend;
 use PhpTui\Tui\Display\Backend;
 use PhpTui\Tui\Display\Display;
@@ -52,12 +58,15 @@ final class Application
     public static function new(Terminal $terminal, Agent $agent, State $state): self
     {
         $components = [
-            ContentComponent::class => new ContentComponent($state),
+            WindowedContentComponent::class => new WindowedContentComponent($state, $terminal),
+            DynamicIsland::class => new DynamicIsland($state),
             HelpStringComponent::class => new HelpStringComponent(),
             InputComponent::class => new InputComponent($state, $terminal),
-            AutocompleteComponent::class => new AutocompleteComponent($state),
+            AutocompleteComponent::class => new AutocompleteComponent($state, $terminal),
             StatusComponent::class => new StatusComponent($state)
         ];
+        $state->pushContentItem(HeaderComponentItems::getLogo());
+        $state->pushContentItem(HeaderComponentItems::getTips());
 
         return new self(
             $terminal,
@@ -80,8 +89,21 @@ final class Application
                 }
                 // Ctrl+D -> submit
                 if ($event->char === 'd' && KeyModifiers::CONTROL === $event->modifiers) {
-                    // TODO push to history, dispatch event
+                    if (empty($this->state->getInput())) {
+                        continue;
+                    }
+                    if (str_starts_with($this->state->getInput(), '/')) {
+                        // resolve command
+                        $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::COMMAND_CARD, $this->state->getInput()));
+                        continue;
+                    }
+
+                    // TODO push to history, dispatch event, process command
+                    $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::USER_CARD, $this->state->getInput()));
+                    $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $this->state->getInput()));
+
                     $this->components[InputComponent::class]->clearAll();
+                    $this->components[AutocompleteComponent::class]->recomputeAutocomplete(resetCursor:true);
                     continue;
                 }
             }
@@ -104,22 +126,33 @@ final class Application
             );
         $total = max(1, count($wrapped));
         $inputHeight = max(1, min(InputComponent::MAX_VISIBLE_LINES, $total));
+        // TODO we should catch resize and recalculate it
+        $contentH = 30;
+        $termH = max(5, $this->terminal->info(Size::class)->lines ?? $contentH);
+        $dynIslandH = 10;
+        $helpH = 1;
+        $inputH = 2 + $inputHeight;
+        $acH = AutocompleteComponent::MAX_ROWS_VISIBLE + 1;
+        $statusH = 1;
 
+        $contentViewport = max(1, $termH - ($dynIslandH + $helpH + $inputH + $acH + $statusH));
+        $this->state->setContentViewportHeight($contentViewport);
         return
             GridWidget::default()
-            ->direction(Direction::Vertical)
-            ->constraints(
-                Constraint::max(25),
-                Constraint::length(1),
-                Constraint::length(2 + $inputHeight),
-                Constraint::length(9),
-                Constraint::length(1)
-            )
-            ->widgets(...array_map(
-                function (Component $component) {
-                    return $component->build();
-                },
-                $this->components
-            ));
+                ->direction(Direction::Vertical)
+                ->constraints(
+                    Constraint::length($contentH),
+                    Constraint::length($dynIslandH),
+                    Constraint::length($helpH),
+                    Constraint::length($inputH),
+                    Constraint::length($acH),
+                    Constraint::length($statusH)
+                )
+                ->widgets(...array_map(
+                    function (Component $component) {
+                        return $component->build();
+                    },
+                    $this->components
+                ));
     }
 }

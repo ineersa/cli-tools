@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Tui\Component;
 
 use App\Tui\State;
-use App\Tui\Utilities\InputUtilities;
-use App\Tui\Utilities\TerminalUtilities;
+use App\Tui\Utility\InputUtilities;
+use App\Tui\Utility\TerminalUtilities;
 use PhpTui\Term\Event;
 use PhpTui\Term\Event\CharKeyEvent;
 use PhpTui\Term\Event\CodedKeyEvent;
@@ -29,7 +29,6 @@ use PhpTui\Tui\Widget\Widget;
 final class InputComponent implements Component
 {
     private bool $editing = true;        // always focused
-    private int $stickyCol = 0;          // preferred column for up/down (hard lines)
     public const MAX_VISIBLE_LINES = 5; // input viewport height (wrapped)
 
     /** @var list<string> */
@@ -74,7 +73,7 @@ final class InputComponent implements Component
             $chunk = InputUtilities::sanitizePaste($event->char);
             if ($chunk !== '') {
                 $this->insertText($chunk);
-                $this->updateStickyFromIndex();
+                InputUtilities::updateStickyFromIndex($this->state);
             }
         } elseif ($event instanceof CodedKeyEvent) {
             $code = $event->code;
@@ -83,16 +82,16 @@ final class InputComponent implements Component
                 if ($code === KeyCode::Enter) {
                     // Enter inserts newline (not submit)
                     $this->insertText("\n");
-                    $this->updateStickyFromIndex();
+                    InputUtilities::updateStickyFromIndex($this->state);
                 } elseif ($code === KeyCode::Backspace) {
                     $this->deleteCharLeft();
-                    $this->updateStickyFromIndex();
+                    InputUtilities::updateStickyFromIndex($this->state);
                 } elseif ($code === KeyCode::Left) {
                     $this->moveLeft();
-                    $this->updateStickyFromIndex();
+                    InputUtilities::updateStickyFromIndex($this->state);
                 } elseif ($code === KeyCode::Right) {
                     $this->moveRight();
-                    $this->updateStickyFromIndex();
+                    InputUtilities::updateStickyFromIndex($this->state);
                 } elseif ($code === KeyCode::Up) {
                     $this->moveUp();
                 } elseif ($code === KeyCode::Down) {
@@ -134,7 +133,7 @@ final class InputComponent implements Component
         [$l, $r] = $this->splitAtCharIndex($this->state->getCharIndex());
         $this->state->setInput($l . $text . $r);
         $this->state->setCharIndex($this->state->getCharIndex() + \mb_strlen($text));
-        $this->ensureCaretVisible();
+        InputUtilities::ensureCaretVisible($this->state, $this->terminal);
     }
 
     private function splitAtCharIndex(int $idx): array
@@ -142,25 +141,6 @@ final class InputComponent implements Component
         $idx = max(0, min($idx, \mb_strlen($this->state->getInput())));
 
         return [\substr($this->state->getInput(), 0, $idx), \substr($this->state->getInput(), $idx)];
-    }
-
-    private function ensureCaretVisible(): void
-    {
-        [$wrapped, $cLine, ] = InputUtilities::wrapTextAndLocateCaret(
-            $this->state->getInput(),
-            $this->state->getCharIndex(),
-            TerminalUtilities::getTerminalInnerWidth($this->terminal)
-        );
-
-        $max = self::MAX_VISIBLE_LINES;
-        if ($cLine < $this->state->getScrollTopLine()) {
-            $this->state->setScrollTopLine($cLine);
-        } elseif ($cLine >= $this->state->getScrollTopLine() + $max) {
-            $this->state->setScrollTopLine($cLine - $max + 1);
-        }
-
-        $total = count($wrapped);
-        $this->state->setScrollTopLine(max(0, min($this->state->getScrollTopLine(), max(0, $total - $max))));
     }
 
     private function deleteCharLeft(): void
@@ -172,19 +152,19 @@ final class InputComponent implements Component
         $l = \substr($l, 0, \strlen($l) - 1);
         $this->state->setInput($l . $r);
         $this->state->setCharIndex($this->state->getCharIndex() - 1);
-        $this->ensureCaretVisible();
+        InputUtilities::ensureCaretVisible($this->state, $this->terminal);
     }
 
     private function moveLeft(): void
     {
         $this->state->setCharIndex(max(0, $this->state->getCharIndex() - 1));
-        $this->ensureCaretVisible();
+        InputUtilities::ensureCaretVisible($this->state, $this->terminal);
     }
 
     private function moveRight(): void
     {
         $this->state->setCharIndex(min(\mb_strlen($this->state->getInput()), $this->state->getCharIndex() + 1));
-        $this->ensureCaretVisible();
+        InputUtilities::ensureCaretVisible($this->state, $this->terminal);
     }
 
     private function moveUp(): void
@@ -192,12 +172,14 @@ final class InputComponent implements Component
         [$lineStarts, $lines] = $this->lineIndexing();
         [$curLine, $curCol] = $this->cursorLineCol($lineStarts);
 
-        $this->stickyCol = $this->stickyCol ?: $curCol;
+        $sticky = $this->state->getStickyCol();
+        $sticky = $sticky ?: $curCol;
+        $this->state->setStickyCol($sticky);
         $targetLine = max(0, $curLine - 1);
-        $targetCol = min($this->stickyCol, \strlen($lines[$targetLine] ?? ''));
+        $targetCol = min($sticky, \strlen($lines[$targetLine] ?? ''));
         $this->state->setCharIndex(($lineStarts[$targetLine] ?? 0) + $targetCol);
 
-        $this->ensureCaretVisible();
+        InputUtilities::ensureCaretVisible($this->state, $this->terminal);
     }
 
     private function moveDown(): void
@@ -205,19 +187,11 @@ final class InputComponent implements Component
         [$lineStarts, $lines] = $this->lineIndexing();
         [$curLine, $curCol] = $this->cursorLineCol($lineStarts);
 
-        $this->stickyCol = $this->stickyCol ?: $curCol;
+        $this->state->setStickyCol($this->state->getStickyCol() ?: $curCol);
         $targetLine = min(count($lines) - 1, $curLine + 1);
-        $targetCol = min($this->stickyCol, \strlen($lines[$targetLine] ?? ''));
+        $targetCol = min($this->state->getStickyCol(), \strlen($lines[$targetLine] ?? ''));
         $this->state->setCharIndex( ($lineStarts[$targetLine] ?? 0) + $targetCol);
-
-        $this->ensureCaretVisible();
-    }
-
-    private function updateStickyFromIndex(): void
-    {
-        [$lineStarts,] = $this->lineIndexing();
-        [, $col] = $this->cursorLineCol($lineStarts);
-        $this->stickyCol = $col;
+        InputUtilities::ensureCaretVisible($this->state, $this->terminal);
     }
 
     /**
@@ -279,14 +253,14 @@ final class InputComponent implements Component
 
         $this->state->setInput($before . $after);
         $this->state->setCharIndex($lineStarts[$curLine]); // move the caret to start of this line
-        $this->ensureCaretVisible();
+        InputUtilities::ensureCaretVisible($this->state, $this->terminal);
     }
 
     public function clearAll(): void
     {
         $this->state->setInput('');
         $this->state->setCharIndex(0);
-        $this->stickyCol = 0;
+        $this->state->setStickyCol(0);
         $this->state->setScrollTopLine(0);
     }
 }

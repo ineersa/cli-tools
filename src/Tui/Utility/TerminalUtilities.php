@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Tui\Utilities;
+namespace App\Tui\Utility;
 
 use App\Tui\Component\InputComponent;
 use PhpTui\Term\Actions;
@@ -19,8 +19,7 @@ class TerminalUtilities
 
     public static function moveCursorToInputBox(Terminal $terminal, int $caretLine, int $caretCol , int $scrollTopLine): void
     {
-        $height = $terminal->info(Size::class)->cols;
-        $inputBoxTop    = 26; // help=1 + History = 20
+        $inputBoxTop    = 41; // help=1 + History = 30 + Dynamic Island 10
         $inputBoxOffset = 1; // border inside offset
         $row = $inputBoxTop + $inputBoxOffset + ($caretLine - $scrollTopLine);
         $col = 1 + 1 + $caretCol; // +1 for left border + 1 for padding

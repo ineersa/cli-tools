@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Tui\Exceptions;
+namespace App\Tui\Exception;
 
 class UserInterruptException extends \Exception
 {

@@ -9,7 +9,7 @@ use App\Agent\Mode;
 final class QuestionReceivedEvent
 {
     public function __construct(
-        public readonly Mode $mode,
+        public readonly string $question,
     ) {
     }
 }

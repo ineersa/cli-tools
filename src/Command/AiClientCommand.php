@@ -38,6 +38,7 @@ final class AiClientCommand extends Command
         private Agent $agent,
         private State $state,
         private Runner $runner,
+        private Application $app,
     ) {
         parent::__construct();
     }
@@ -52,7 +53,6 @@ final class AiClientCommand extends Command
         $display = DisplayBuilder::default(PhpTuiPhpTermBackend::new($this->terminal))
             ->addExtension(new BdfExtension())
             ->build();
-        $tuiApplication = Application::new($this->terminal, $this->state, $this->runner);
         try {
             // enable "raw" mode to remove default terminal behavior (e.g.
             // echoing key presses)
@@ -63,8 +63,8 @@ final class AiClientCommand extends Command
 
             // main loop
             while (true) { // @phpstan-ignore while.alwaysTrue
-                $tuiApplication->listenTerminalEvents();
-                $display->draw($tuiApplication->layout());
+                $this->app->listenTerminalEvents();
+                $display->draw($this->app->layout());
                 [, $caretLine, $caretCol] =
                     InputUtilities::wrapTextAndLocateCaret(
                         $this->state->getInput(),

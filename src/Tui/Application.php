@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tui;
 
 use App\Agent\Agent;
+use App\Events\QuestionReceivedEvent;
 use App\Tui\Command\Runner;
 use App\Tui\Component\AutocompleteComponent;
 use App\Tui\Component\Component;
@@ -28,20 +29,21 @@ use PhpTui\Term\Terminal;
 use PhpTui\Tui\Extension\Core\Widget\GridWidget;
 use PhpTui\Tui\Widget\Direction;
 use PhpTui\Tui\Widget\Widget;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final class Application
 {
-    private function __construct(
+
+    private readonly Layout $layout;
+
+    public function __construct(
         private readonly Terminal $terminal,
-        private readonly Layout $layout,
         public readonly State $state,
         public readonly Runner $runner,
+        public readonly EventDispatcherInterface $eventDispatcher,
     ) {
-    }
-
-    public static function new(Terminal $terminal, State $state, Runner $runner): self
-    {
-        $layout = new Layout(
+        $this->layout = new Layout(
             windowedContentComponent: new WindowedContentComponent($state, $terminal),
             autocompleteComponent: new AutocompleteComponent($state, $terminal),
             statusComponent: new StatusComponent($state),
@@ -49,15 +51,8 @@ final class Application
             dynamicIslandComponent: new DynamicIslandComponent($state),
             inputComponent: new InputComponent($state, $terminal),
         );
-        $state->pushContentItem(TextContentComponentItems::getLogo());
-        $state->pushContentItem(TextContentComponentItems::getTips());
-
-        return new self(
-            $terminal,
-            $layout,
-            $state,
-            $runner
-        );
+        $this->state->pushContentItem(TextContentComponentItems::getLogo());
+        $this->state->pushContentItem(TextContentComponentItems::getTips());
     }
 
     /**
@@ -106,11 +101,12 @@ final class Application
                     }
 
                     // TODO push to history, dispatch event, process command
+                    $input = $this->state->getInput();
                     $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::USER_CARD, $this->state->getInput()));
-                    $this->
 
                     $this->layout->inputComponent->clearAll();
                     $this->layout->autocompleteComponent->recomputeAutocomplete(resetCursor: true);
+                    $this->eventDispatcher->dispatch(new QuestionReceivedEvent($input));
                     continue;
                 }
                 // Processing char here because it's used later for input and autocomplete

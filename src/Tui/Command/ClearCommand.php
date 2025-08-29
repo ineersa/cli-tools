@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Command;
 
 use App\Tui\Component\TextContentComponentItems;
@@ -10,10 +12,9 @@ class ClearCommand implements CommandInterface
 {
     public function __construct(
         private State $state,
-    )
-    {
-
+    ) {
     }
+
     public function supports(string $command): bool
     {
         return '/clear' === trim($command);
@@ -25,6 +26,6 @@ class ClearCommand implements CommandInterface
             TextContentComponentItems::getLogo(),
         ]);
 
-        throw new ProblemException("Chat save and summary, and new chat start is not implemented yet.");
+        throw new ProblemException('Chat save and summary, and new chat start is not implemented yet.');
     }
 }

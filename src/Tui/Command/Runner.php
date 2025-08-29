@@ -12,8 +12,11 @@ class Runner
     /** @var iterable<CommandInterface> */
     private iterable $commandsList;
 
+    /**
+     * @param iterable<CommandInterface> $commandsList
+     */
     public function __construct(
-        #[TaggedIterator('app.tui.command')] iterable $commandsList
+        #[TaggedIterator('app.tui.command')] iterable $commandsList,
     ) {
         $this->commandsList = $commandsList;
     }
@@ -23,6 +26,7 @@ class Runner
         foreach ($this->commandsList as $command) {
             if ($command->supports($commandString)) {
                 $command->execute($commandString);
+
                 return;
             }
         }

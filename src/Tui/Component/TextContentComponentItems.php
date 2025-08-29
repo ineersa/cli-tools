@@ -77,6 +77,7 @@ Please don't forget to set those up.
 *COMMANDS*
 Please type `/` inside input box and check available commands.
 HELP;
+
         return new ContentItem(
             'help',
             text: Text::fromString($help),

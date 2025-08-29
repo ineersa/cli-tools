@@ -10,11 +10,14 @@ use App\Tui\Component\AutocompleteComponent;
 use App\Tui\Component\Component;
 use App\Tui\Component\ContentItemFactory;
 use App\Tui\Component\DynamicIslandComponent;
-use App\Tui\Component\HeaderComponentItems;
+use App\Tui\Component\TextContentComponentItems;
 use App\Tui\Component\HelpStringComponent;
 use App\Tui\Component\InputComponent;
+use App\Tui\Component\ProblemComponent;
 use App\Tui\Component\StatusComponent;
 use App\Tui\Component\WindowedContentComponent;
+use App\Tui\Exception\FollowupException;
+use App\Tui\Exception\ProblemException;
 use App\Tui\Exception\UserInterruptException;
 use App\Tui\Utility\InputUtilities;
 use App\Tui\Utility\TerminalUtilities;
@@ -46,8 +49,8 @@ final class Application
             dynamicIslandComponent: new DynamicIslandComponent($state),
             inputComponent: new InputComponent($state, $terminal),
         );
-        $state->pushContentItem(HeaderComponentItems::getLogo());
-        $state->pushContentItem(HeaderComponentItems::getTips());
+        $state->pushContentItem(TextContentComponentItems::getLogo());
+        $state->pushContentItem(TextContentComponentItems::getTips());
 
         return new self(
             $terminal,
@@ -77,10 +80,22 @@ final class Application
                         continue;
                     }
                     if (str_starts_with($this->state->getInput(), '/')) {
-                        // resolve command
+                        try {
+                            $this->runner->runCommand($this->state->getInput());
+                        } catch (ProblemException $problemException) {
+                            $this->state->setDynamicIslandComponents([
+                                ProblemComponent::NAME => new ProblemComponent($problemException, $this->state),
+                            ]);
+                            continue;
+                        } catch (FollowupException $followupException) {
+                            continue;
+                        }
+
                         $this->state->pushContentItem(
                             ContentItemFactory::make(ContentItemFactory::COMMAND_CARD, $this->state->getInput())
                         );
+                        $this->layout->inputComponent->clearAll();
+                        $this->layout->autocompleteComponent->recomputeAutocomplete(resetCursor: true);
                         continue;
                     }
 

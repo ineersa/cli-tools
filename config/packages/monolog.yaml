@@ -20,7 +20,7 @@ when@dev:
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: info
                 max_files: 2
-                formatter: monolog.formatter.json
+                formatter: monolog.formatter.json_with_stacktraces
 
 when@test:
     monolog:
@@ -35,7 +35,7 @@ when@test:
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: info
                 max_files: 1
-                formatter: monolog.formatter.json
+                formatter: monolog.formatter.json_with_stacktraces
 
 
 when@prod:
@@ -52,5 +52,5 @@ when@prod:
                 path: "%kernel.logs_dir%/%kernel.environment%.log"
                 level: info
                 max_files: 2
-                formatter: monolog.formatter.json
+                formatter: monolog.formatter.json_with_stacktraces
 

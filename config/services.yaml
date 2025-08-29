@@ -25,3 +25,11 @@ services:
         arguments:
             - '%env(APP_AGENT_MODEL)%'
 
+    _instanceof:
+        App\Tui\Command\CommandInterface:
+            tags: [ 'app.tui.command' ]
+
+    monolog.formatter.json_with_stacktraces:
+        class: Monolog\Formatter\JsonFormatter
+        arguments:
+            $includeStacktraces: true

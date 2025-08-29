@@ -8,6 +8,8 @@ use App\Agent\Agent;
 use App\Agent\Mode;
 use App\Tui\Application;
 use App\Tui\Command\Runner;
+use App\Tui\Exception\ExitInterruptException;
+use App\Tui\Exception\UserInterruptException;
 use App\Tui\State;
 use App\Tui\Utility\InputUtilities;
 use App\Tui\Utility\TerminalUtilities;
@@ -74,6 +76,8 @@ final class AiClientCommand extends Command
 
                 usleep(20_000);
             }
+        } catch (UserInterruptException|ExitInterruptException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             $this->logger->error($e->getMessage(), [
                 'trace' => $e->getTrace(),

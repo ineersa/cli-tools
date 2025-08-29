@@ -12,6 +12,7 @@ class ContentItem
     public int $height = 0;
 
     public function __construct(
+        public readonly string $type,
         public readonly Text $text,
         public readonly Style $style,
         public readonly bool $hasBorders = false,

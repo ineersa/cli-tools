@@ -22,8 +22,9 @@ class ContentItemFactory
     public static function make(string $type, string $input = ''): ContentItem
     {
         return match ($type) {
-            self::EMPTY_ITEM => new ContentItem(Text::fromLines(Line::fromString('')), Style::default()),
+            self::EMPTY_ITEM => new ContentItem($type, Text::fromLines(Line::fromString('')), Style::default()),
             self::USER_CARD => new ContentItem(
+                type: $type,
                 text: Text::fromString($input),
                 style: Style::default()->fg(AnsiColor::DarkGray),
                 hasBorders: true,
@@ -32,6 +33,7 @@ class ContentItemFactory
                 titleStyle: Style::default()->fg(RgbColor::fromHex('#90FCCF')),
             ),
             self::RESPONSE_CARD => new ContentItem(
+                type: $type,
                 text: Text::fromString($input),
                 style: Style::default(),
                 hasBorders: true,
@@ -41,8 +43,9 @@ class ContentItemFactory
                 titleStyle: Style::default()->fg(RgbColor::fromHex('#FFDE21')),
             ),
             self::COMMAND_CARD => new ContentItem(
+                type: $type,
                 text: Text::fromString($input),
-                style: Style::default()->fg(AnsiColor::Green),
+                style: Style::default()->fg(RgbColor::fromHex('#88E788')),
                 hasBorders: true,
                 borderColorHex: '#88E788'
             ),

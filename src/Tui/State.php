@@ -46,6 +46,8 @@ class State
      */
     private array $dynamicIslandComponents = [];
 
+    private bool $requireReDrawing = false;
+
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
         private readonly Agent $agent,
@@ -212,6 +214,18 @@ class State
     public function setContentViewportHeight(int $contentViewportHeight): static
     {
         $this->contentViewportHeight = $contentViewportHeight;
+
+        return $this;
+    }
+
+    public function isRequireReDrawing(): bool
+    {
+        return $this->requireReDrawing;
+    }
+
+    public function setRequireReDrawing(bool $requireReDrawing): static
+    {
+        $this->requireReDrawing = $requireReDrawing;
 
         return $this;
     }

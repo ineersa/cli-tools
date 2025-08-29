@@ -39,7 +39,7 @@ final class Application
     ) {
     }
 
-    public static function new(Terminal $terminal, Agent $agent, State $state, Runner $runner): self
+    public static function new(Terminal $terminal, State $state, Runner $runner): self
     {
         $layout = new Layout(
             windowedContentComponent: new WindowedContentComponent($state, $terminal),
@@ -66,7 +66,13 @@ final class Application
     public function listenTerminalEvents(): void
     {
         // handle events sent to the terminal
-        while (null !== $event = $this->terminal->events()->next()) {
+        while ((null !== $event = $this->terminal->events()->next())
+            || $this->state->isRequireReDrawing()
+        ) {
+            if ($this->state->isRequireReDrawing()) {
+                $this->state->setRequireReDrawing(false);
+                continue;
+            }
             if ($event instanceof CharKeyEvent) {
                 // Ctrl+C -> exit
                 if ('c' === $event->char && KeyModifiers::CONTROL === $event->modifiers) {
@@ -101,7 +107,7 @@ final class Application
 
                     // TODO push to history, dispatch event, process command
                     $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::USER_CARD, $this->state->getInput()));
-                    $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $this->state->getInput()));
+                    $this->
 
                     $this->layout->inputComponent->clearAll();
                     $this->layout->autocompleteComponent->recomputeAutocomplete(resetCursor: true);

@@ -27,7 +27,8 @@
         "symfony/messenger": "7.3.*",
         "symfony/monolog-bundle": "^3.10",
         "symfony/runtime": "7.3.*",
-        "symfony/yaml": "7.3.*"
+        "symfony/yaml": "7.3.*",
+        "theodo-group/llphant": "^0.10.1"
     },
     "config": {
         "allow-plugins": {

@@ -52,7 +52,7 @@ final class AiClientCommand extends Command
         $display = DisplayBuilder::default(PhpTuiPhpTermBackend::new($this->terminal))
             ->addExtension(new BdfExtension())
             ->build();
-        $tuiApplication = Application::new($this->terminal, $this->agent, $this->state, $this->runner);
+        $tuiApplication = Application::new($this->terminal, $this->state, $this->runner);
         try {
             // enable "raw" mode to remove default terminal behavior (e.g.
             // echoing key presses)

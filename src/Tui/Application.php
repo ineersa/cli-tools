@@ -80,6 +80,19 @@ final class Application
                     ) {
                         continue;
                     }
+                    if ($this->state->getInteractionSession()) {
+                        try {
+                            $this->state->getInteractionSession()->step($this->state->getInput());
+                        } catch (ProblemException $problemException) {
+                            $this->state->setDynamicIslandComponents([
+                                ProblemComponent::NAME => new ProblemComponent($problemException, $this->state),
+                            ]);
+                            continue;
+                        } catch (FollowupException $followupException) {
+                            // step will be set inside session straight to state, if no session active we need to proceed
+                            continue;
+                        }
+                    }
                     if (str_starts_with($this->state->getInput(), '/')) {
                         try {
                             $this->runner->runCommand($this->state->getInput());
@@ -104,9 +117,8 @@ final class Application
                     $input = $this->state->getInput();
                     $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::USER_CARD, $this->state->getInput()));
 
-                    $this->layout->inputComponent->clearAll();
-                    $this->layout->autocompleteComponent->recomputeAutocomplete(resetCursor: true);
-                    $this->eventDispatcher->dispatch(new QuestionReceivedEvent($input));
+                    $this->clearInput();
+                    //$this->eventDispatcher->dispatch(new QuestionReceivedEvent($input));
                     continue;
                 }
                 // Processing char here because it's used later for input and autocomplete
@@ -156,5 +168,13 @@ final class Application
                     },
                     $this->layout->getComponents()
                 ));
+    }
+
+    public function clearInput()
+    {
+        $this->layout->inputComponent->clearAll();
+        if (!$this->state->getInteractionSession()) {
+            $this->layout->autocompleteComponent->recomputeAutocomplete(resetCursor: true);
+        }
     }
 }

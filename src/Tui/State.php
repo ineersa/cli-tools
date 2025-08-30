@@ -7,6 +7,7 @@ namespace App\Tui;
 use App\Agent\Agent;
 use App\Agent\Mode;
 use App\Events\ModeChangedEvent;
+use App\Tui\Command\InteractionSessionInterface;
 use App\Tui\Component\Component;
 use App\Tui\Component\ConstraintAwareComponent;
 use App\Tui\Component\ContentItem;
@@ -47,6 +48,8 @@ class State
     private array $dynamicIslandComponents = [];
 
     private bool $requireReDrawing = false;
+
+    private ?InteractionSessionInterface $interactionSession = null;
 
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
@@ -226,6 +229,18 @@ class State
     public function setRequireReDrawing(bool $requireReDrawing): static
     {
         $this->requireReDrawing = $requireReDrawing;
+
+        return $this;
+    }
+
+    public function getInteractionSession(): ?InteractionSessionInterface
+    {
+        return $this->interactionSession;
+    }
+
+    public function setInteractionSession(?InteractionSessionInterface $interactionSession): static
+    {
+        $this->interactionSession = $interactionSession;
 
         return $this;
     }

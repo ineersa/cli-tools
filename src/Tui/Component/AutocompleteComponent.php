@@ -34,13 +34,11 @@ class AutocompleteComponent implements Component
             'restore-full #' => 'restore chat #123, will use *FULL* version',
             'clear-all' => 'delete all chats, if you want to start new chat use /clear',
         ]],
-        ['name' => 'project', 'desc' => 'manage project and project settings', 'followup' => [
+        ['name' => '/project', 'desc' => 'manage project and project settings', 'followup' => [
             'list' => 'list projects',
             'delete #' => 'delete project #123',
-            'create NAME WORKDIR' => 'create project, name and workdir are required arguments',
-            'edit-workdir #' => 'edit project #123 working directory',
-            'edit-default #' => 'edit project #123, set as default',
-            'edit-instructions #' => 'edit project #123, set relative path to instructions file (default: AGENTS.MD)',
+            'create' => 'create new project',
+            'edit #ID FIELD' => 'edit project #123, fields: name, workdir, is_default, instructions',
         ]],
         ['name' => '/compact', 'desc' => 'compact current chat'],
         ['name' => '/clear',   'desc' => 'clear the screen and history, starts new chat'],
@@ -92,6 +90,9 @@ class AutocompleteComponent implements Component
 
     public function handle(Event $event): void
     {
+        if ($this->state->getInteractionSession()) {
+            return;
+        }
         if ($event instanceof CharKeyEvent) {
             // Tab may arrive as literal "\t"
             if ("\t" === $event->char && $this->state->isAcOpen()) {

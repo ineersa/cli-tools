@@ -20,7 +20,7 @@ final class QuestionReceivedListener
     #[AsEventListener(event: QuestionReceivedEvent::class)]
     public function onQuestionReceivedEvent($event): void
     {
-        $response = $this->agent->getChat()->generateText($event->question);
-        $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $response));
+//        $response = $this->agent->getChat()->generateText($event->question);
+//        $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $response));
     }
 }

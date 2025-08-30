@@ -15,7 +15,7 @@ class HelpStringComponent implements Component
 {
     public const HEIGHT = 1;
 
-    private const HELP_STRING = 'Enter = newline/accept · Ctrl+D = submit · Arrows ←→↑↓ · Ctrl+C quits · Ctrl+Y = delete line · Esc+Esc = clear · PgUp/PgDown = scroll content';
+    private const HELP_STRING = 'Enter = newline/accept · Ctrl+D = submit · Arrows ←→↑↓ · Ctrl+C quits · Ctrl+Y = delete line · Esc+Esc = clear · PgUp/PgDown = scroll content · Esc = cancel';
 
     public function build(): Widget
     {

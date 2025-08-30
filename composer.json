@@ -19,16 +19,19 @@
         "doctrine/doctrine-bundle": "^2.15",
         "doctrine/doctrine-migrations-bundle": "^3.4",
         "doctrine/orm": "^3.5",
+        "nyholm/psr7": "^1.8",
+        "openai-php/client": "^0.16.0",
         "php-tui/php-tui": "^0.2.1",
+        "stof/doctrine-extensions-bundle": "^1.14",
         "symfony/console": "7.3.*",
         "symfony/dotenv": "7.3.*",
         "symfony/flex": "^2",
         "symfony/framework-bundle": "7.3.*",
+        "symfony/http-client": "^7.3",
         "symfony/messenger": "7.3.*",
         "symfony/monolog-bundle": "^3.10",
         "symfony/runtime": "7.3.*",
-        "symfony/yaml": "7.3.*",
-        "theodo-group/llphant": "^0.10.1"
+        "symfony/yaml": "7.3.*"
     },
     "config": {
         "allow-plugins": {

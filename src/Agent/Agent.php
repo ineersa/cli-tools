@@ -10,7 +10,6 @@ use LLPhant\OpenAIConfig;
 class Agent
 {
     private Mode $mode;
-    private OpenAIChat $chat;
 
     /**
      * @throws \Exception
@@ -19,11 +18,7 @@ class Agent
         private string $model,
     ) {
         $this->mode = Mode::getDefaultMode();
-        $config = new OpenAIConfig();
-        $config->apiKey = '-';
-        $config->url = 'http://localhost:11434/v1';
-        $config->model = $this->model;
-        $this->chat = new OpenAIChat($config);
+
     }
 
     public function getMode(): Mode
@@ -48,10 +43,5 @@ class Agent
         $this->model = $model;
 
         return $this;
-    }
-
-    public function getChat(): OpenAIChat
-    {
-        return $this->chat;
     }
 }

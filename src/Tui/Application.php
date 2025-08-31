@@ -17,6 +17,7 @@ use App\Tui\Component\ProblemComponent;
 use App\Tui\Component\StatusComponent;
 use App\Tui\Component\TextContentComponentItems;
 use App\Tui\Component\WindowedContentComponent;
+use App\Tui\Exception\CompleteException;
 use App\Tui\Exception\FollowupException;
 use App\Tui\Exception\ProblemException;
 use App\Tui\Exception\UserInterruptException;
@@ -88,8 +89,13 @@ final class Application
                                 ProblemComponent::NAME => new ProblemComponent($problemException, $this->state),
                             ]);
                             continue;
-                        } catch (FollowupException $followupException) {
+                        } catch (FollowupException) {
                             // step will be set inside session straight to state, if no session active we need to proceed
+                            continue;
+                        } catch (CompleteException $completeException) {
+                            $this->state->setInteractionSession(null);
+                            $this->clearInput();
+                            $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::COMMAND_CARD, $completeException->getMessage()));
                             continue;
                         }
                     }
@@ -101,16 +107,16 @@ final class Application
                                 ProblemComponent::NAME => new ProblemComponent($problemException, $this->state),
                             ]);
                             continue;
-                        } catch (FollowupException $followupException) {
+                        } catch (FollowupException) {
+                            continue;
+                        } catch (CompleteException $completeException) {
+                            $this->state->pushContentItem(
+                                ContentItemFactory::make(ContentItemFactory::COMMAND_CARD, $completeException->getMessage())
+                            );
+                            $this->layout->inputComponent->clearAll();
+                            $this->layout->autocompleteComponent->recomputeAutocomplete(resetCursor: true);
                             continue;
                         }
-
-                        $this->state->pushContentItem(
-                            ContentItemFactory::make(ContentItemFactory::COMMAND_CARD, $this->state->getInput())
-                        );
-                        $this->layout->inputComponent->clearAll();
-                        $this->layout->autocompleteComponent->recomputeAutocomplete(resetCursor: true);
-                        continue;
                     }
 
                     // TODO push to history, dispatch event, process command

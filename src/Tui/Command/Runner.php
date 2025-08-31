@@ -21,13 +21,11 @@ class Runner
         $this->commandsList = $commandsList;
     }
 
-    public function runCommand(string $commandString): void
+    public function runCommand(string $commandString): never
     {
         foreach ($this->commandsList as $command) {
             if ($command->supports($commandString)) {
                 $command->execute($commandString);
-
-                return;
             }
         }
         throw new ProblemException('No supported commands found');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Tui\Command;
 
 use App\Tui\Component\TextContentComponentItems;
+use App\Tui\Exception\CompleteException;
 use App\Tui\Exception\ProblemException;
 use App\Tui\State;
 
@@ -26,6 +27,6 @@ class ClearCommand implements CommandInterface
             TextContentComponentItems::getLogo(),
         ]);
 
-        throw new ProblemException('Chat save and summary, and new chat start is not implemented yet.');
+        throw new CompleteException("/clear \n Chat save and summary, and new chat start is not implemented yet.");
     }
 }

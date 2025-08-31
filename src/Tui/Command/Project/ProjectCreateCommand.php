@@ -3,28 +3,31 @@
 namespace App\Tui\Command\Project;
 
 use App\Repository\ProjectRepository;
+use App\Service\ProjectService;
 use App\Tui\Application;
+use App\Tui\Command\AbstractInteractionSessionCommand;
 use App\Tui\Command\InteractionSessionInterface;
 use App\Tui\Component\ContentItemFactory;
 use App\Tui\Component\StepComponent;
 use App\Tui\DTO\StepComponentDTO;
+use App\Tui\Exception\CompleteException;
 use App\Tui\Exception\FollowupException;
 use App\Tui\Exception\ProblemException;
 use App\Tui\State;
 use PhpTui\Tui\Color\AnsiColor;
 use PhpTui\Tui\Style\Style;
 
-final class ProjectCreateCommand implements InteractionSessionInterface
+final class ProjectCreateCommand extends AbstractInteractionSessionCommand
 {
     public const COMMAND_TITLE = 'Create project';
 
     public function __construct(
         private State $state,
         private Application $application,
-        private ProjectRepository $projectRepository,
-    ){}
-
-    private int $step = 1;
+        private ProjectService $projectService,
+    ){
+        parent::__construct($this->state, $this->application);
+    }
     private array $data = [];
 
     public function step(string $line): never
@@ -36,7 +39,7 @@ final class ProjectCreateCommand implements InteractionSessionInterface
                 if (!preg_match('/^[a-z0-9\-]{2,}$/i', $line)) {
                     throw new ProblemException('Name must be ≥2 chars, letters/digits/dashes.');
                 }
-                if ($this->projectRepository->findOneBy(['name' => $line])) {
+                if ($this->projectService->projectRepository->findOneBy(['name' => $line])) {
                     throw new ProblemException('Project with this name already exists.');
                 }
                 $this->data['name'] = $line;
@@ -103,24 +106,25 @@ final class ProjectCreateCommand implements InteractionSessionInterface
                     $this->cancel();
                     throw new ProblemException('Cancelled.');
                 }
-                // call service to save
+                try {
+                    $project = $this->projectService->create($this->data);
+                } catch (\Throwable $exception) {
+                    throw new ProblemException($exception->getMessage());
+                }
                 $dto = new StepComponentDTO(
                     title: self::COMMAND_TITLE,
                     question: sprintf('Project %s has been created', $this->data['name']),
                     borderStyle: Style::default()->fg(AnsiColor::LightGreen),
                 );
                 $this->addStepComponent($dto);
-                $this->state->setInteractionSession(null);
-                $this->application->clearInput();
-                $text = sprintf("/project create \n Project %s has been created", $this->data['name']);
-                $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::COMMAND_CARD, $text));
                 $this->data = [
                     'name' => null,
                     'workdir' => null,
                     'is_default' => false,
                     'instructions' => 'AGENTS.md',
                 ];
-                throw new FollowupException();
+                $text = sprintf("/project create \n Project #%s has been created", $project->getId());
+                throw new CompleteException($text);
         }
     }
 
@@ -143,13 +147,5 @@ final class ProjectCreateCommand implements InteractionSessionInterface
         $this->addStepComponent($dto);
         $this->application->clearInput();
         throw new FollowupException();
-    }
-
-    private function addStepComponent(StepComponentDTO $dto): void
-    {
-        $step = new StepComponent($dto, $this->state);
-        $this->state->setDynamicIslandComponents([
-            $step,
-        ]);
     }
 }

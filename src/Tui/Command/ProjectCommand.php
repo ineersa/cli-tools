@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Tui\Command;
 
 use App\Tui\Command\Project\ProjectCreateCommand;
+use App\Tui\Command\Project\ProjectDeleteCommand;
+use App\Tui\Command\Project\ProjectEditCommand;
+use App\Tui\Command\Project\ProjectListCommand;
 use App\Tui\Exception\ProblemException;
 use App\Tui\State;
 
@@ -12,6 +15,9 @@ class ProjectCommand implements CommandInterface
 {
     public function __construct(
         private ProjectCreateCommand $projectCreateCommand,
+        private ProjectListCommand $projectListCommand,
+        private ProjectDeleteCommand $projectDeleteCommand,
+        private ProjectEditCommand $projectEditCommand,
     ) {
 
     }
@@ -57,12 +63,7 @@ HINT;
             'list' => count($tokens) === 2 && $tokens[1] === 'list',
             'create' => count($tokens) === 2 && $tokens[1] === 'create',
             'delete' => (count($tokens) === 3 && $isId($tokens[2]) && $tokens[1] === 'delete'),
-            'edit'   => (
-                count($tokens) === 4
-                && $isId($tokens[2])
-                && $tokens[1] === 'edit'
-                && in_array(strtolower($tokens[3]), ['name','workdir','is_default','instructions'], true)
-            ),
+            'edit'   => (count($tokens) === 3 && $isId($tokens[2]) && $tokens[1] === 'edit'),
             default  => throw new ProblemException($hint),
         };
     }
@@ -72,6 +73,18 @@ HINT;
         $tokens = preg_split('/\s+/', $command);
         if ($tokens[1] === 'create') {
             $this->projectCreateCommand->sendInitialMessage();
+        }
+        if ($tokens[1] === 'list') {
+            $this->projectListCommand->list();
+        }
+        if ($tokens[1] === 'delete') {
+            $this->projectDeleteCommand
+                ->delete((int)ltrim($tokens[2], '#'));
+        }
+        if ($tokens[1] === 'edit') {
+            $this->projectEditCommand
+                ->setId((int)ltrim($tokens[2], '#'))
+                ->sendInitialMessage();
         }
         throw new ProblemException($command . ' not implemented yet');
     }

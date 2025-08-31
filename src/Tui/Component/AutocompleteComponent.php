@@ -38,7 +38,7 @@ class AutocompleteComponent implements Component
             'list' => 'list projects',
             'delete #' => 'delete project #123',
             'create' => 'create new project',
-            'edit #ID FIELD' => 'edit project #123, fields: name, workdir, is_default, instructions',
+            'edit #' => 'edit project #123',
         ]],
         ['name' => '/compact', 'desc' => 'compact current chat'],
         ['name' => '/clear',   'desc' => 'clear the screen and history, starts new chat'],

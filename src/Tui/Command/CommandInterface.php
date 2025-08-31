@@ -19,5 +19,5 @@ interface CommandInterface
      * @throws ProblemException
      * @throws FollowupException
      */
-    public function execute(string $command): void;
+    public function execute(string $command): never;
 }

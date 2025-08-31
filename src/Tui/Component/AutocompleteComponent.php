@@ -39,6 +39,7 @@ class AutocompleteComponent implements Component
             'delete #' => 'delete project #123',
             'create' => 'create new project',
             'edit #' => 'edit project #123',
+            'change #' => 'change current project to project #123',
         ]],
         ['name' => '/compact', 'desc' => 'compact current chat'],
         ['name' => '/clear',   'desc' => 'clear the screen and history, starts new chat'],

@@ -12,6 +12,8 @@ use PhpTui\Tui\Extension\Core\Widget\BlockWidget;
 use PhpTui\Tui\Extension\Core\Widget\GridWidget;
 use PhpTui\Tui\Extension\Core\Widget\ParagraphWidget;
 use PhpTui\Tui\Layout\Constraint;
+use PhpTui\Tui\Style\Style;
+use PhpTui\Tui\Text\Span;
 use PhpTui\Tui\Text\Text;
 use PhpTui\Tui\Widget\Borders;
 use PhpTui\Tui\Widget\Direction;
@@ -21,17 +23,17 @@ class StatusComponent implements Component
 {
     public const HEIGHT = 1;
 
-    private string $cwd;
-
     public function __construct(
         private State $state,
     ) {
-        $this->cwd = getcwd() ?: '~';
     }
 
     public function build(): Widget
     {
-        $statusLeft = ParagraphWidget::fromText(Text::fromString($this->cwd)->cyan());
+        $statusLeft = ParagraphWidget::fromSpans(
+            Span::fromString($this->state->getProject()->getName()),
+            Span::styled('(' . $this->state->getProject()->getWorkdir() . ')', Style::default()->cyan())
+        );
         $statusCenter = ParagraphWidget::fromText(Text::fromString($this->state->getMode()->value.' (Shift+Tab)')->red());
         $statusRight = ParagraphWidget::fromText(Text::fromString($this->state->getModel().' 100%')->green());
 

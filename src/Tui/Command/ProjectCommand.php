@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Tui\Command;
 
+use App\Tui\Command\Project\ProjectChangeCommand;
 use App\Tui\Command\Project\ProjectCreateCommand;
 use App\Tui\Command\Project\ProjectDeleteCommand;
 use App\Tui\Command\Project\ProjectEditCommand;
@@ -18,6 +19,7 @@ class ProjectCommand implements CommandInterface
         private ProjectListCommand $projectListCommand,
         private ProjectDeleteCommand $projectDeleteCommand,
         private ProjectEditCommand $projectEditCommand,
+        private ProjectChangeCommand $projectChangeCommand,
     ) {
 
     }
@@ -39,7 +41,8 @@ Commands available:
 'list' => 'list projects',
 'delete #' => 'delete project #123',
 'create' => 'create new project',
-'edit #ID FIELD' => 'edit project #123, fields: name, workdir, default, instructions',
+'edit #ID' => 'edit project #123, fields: name, workdir, default, instructions',
+'change #ID => 'change current project to project #123'
 HINT;
         // TODO refactor it to pass and throw in execute
         if (count($tokens) === 1) {
@@ -64,6 +67,7 @@ HINT;
             'create' => count($tokens) === 2 && $tokens[1] === 'create',
             'delete' => (count($tokens) === 3 && $isId($tokens[2]) && $tokens[1] === 'delete'),
             'edit'   => (count($tokens) === 3 && $isId($tokens[2]) && $tokens[1] === 'edit'),
+            'change'   => (count($tokens) === 3 && $isId($tokens[2]) && $tokens[1] === 'change'),
             default  => throw new ProblemException($hint),
         };
     }
@@ -80,6 +84,10 @@ HINT;
         if ($tokens[1] === 'delete') {
             $this->projectDeleteCommand
                 ->delete((int)ltrim($tokens[2], '#'));
+        }
+        if ($tokens[1] === 'change') {
+            $this->projectChangeCommand
+                ->changeTo((int)ltrim($tokens[2], '#'));
         }
         if ($tokens[1] === 'edit') {
             $this->projectEditCommand

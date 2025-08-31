@@ -50,6 +50,7 @@ class State
     private bool $requireReDrawing = false;
 
     private ?InteractionSessionInterface $interactionSession = null;
+    private \App\Entity\Project $project;
 
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
@@ -57,6 +58,7 @@ class State
     ) {
         $this->mode = Mode::getDefaultMode();
         $this->model = $this->agent->getModel();
+        $this->project = $this->agent->getProject();
     }
 
     public function getMode(): Mode
@@ -241,6 +243,18 @@ class State
     public function setInteractionSession(?InteractionSessionInterface $interactionSession): static
     {
         $this->interactionSession = $interactionSession;
+
+        return $this;
+    }
+
+    public function getProject(): \App\Entity\Project
+    {
+        return $this->project;
+    }
+
+    public function setProject(\App\Entity\Project $project): self
+    {
+        $this->project = $project;
 
         return $this;
     }

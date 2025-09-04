@@ -4,18 +4,24 @@ declare(strict_types=1);
 
 namespace App\Agent;
 
+use App\Entity\Chat;
 use App\Llm\LlmClient;
 use App\Service\ProjectService;
 use App\Tui\Exception\ProblemException;
 use App\Worker\WorkerInterface;
+use http\Exception\RuntimeException;
 use OpenAI;
 
 class Agent
 {
     private Mode $mode;
-    private \App\Entity\Project $project;
+    private ?\App\Entity\Project $project;
 
     private array $activeWorkers = [];
+
+    private array $consumers = [];
+
+    private ?Chat $activeChat = null;
 
     /**
      * @throws \Exception
@@ -46,7 +52,7 @@ class Agent
         return $this;
     }
 
-    public function getProject(): \App\Entity\Project
+    public function getProject(): ?\App\Entity\Project
     {
         return $this->project;
     }
@@ -64,7 +70,6 @@ class Agent
     }
 
 
-    // TODO run checks for is running on workers and just poll? remove attach/detach?
     public function pollWorkers(): void
     {
         foreach ($this->activeWorkers as $requestId => $worker) {
@@ -85,5 +90,39 @@ class Agent
             throw new ProblemException('Already attached worker');
         }
         $this->activeWorkers[$requestId] = $worker;
+    }
+
+    public function pollConsumers(): void
+    {
+        foreach ($this->consumers as $requestId => $worker) {
+            $worker->poll($requestId);
+        }
+    }
+
+    public function detachConsumer(string $requestId): void
+    {
+        if (isset($this->consumers[$requestId])) {
+            unset($this->consumers[$requestId]);
+        }
+    }
+
+    public function attachConsumer(string $requestId, WorkerInterface $worker): void
+    {
+        if (isset($this->consumers[$requestId])) {
+            throw new ProblemException('Already attached consumer with requestId = '. $requestId);
+        }
+        $this->consumers[$requestId] = $worker;
+    }
+
+    public function getActiveChat(): ?Chat
+    {
+        return $this->activeChat;
+    }
+
+    public function setActiveChat(?Chat $activeChat): self
+    {
+        $this->activeChat = $activeChat;
+
+        return $this;
     }
 }

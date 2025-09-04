@@ -21,7 +21,7 @@ class ProjectService
         $this->manager = $managerRegistry->getManagerForClass(Project::class);
     }
 
-    public function getDefaultProject(): Project
+    public function getDefaultProject(): ?Project
     {
         return $this->projectRepository
             ->findOneBy(['is_default' => true]);

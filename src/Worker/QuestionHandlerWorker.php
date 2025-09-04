@@ -1,5 +1,4 @@
 <?php
-// src/Tui/Worker/QuestionProcess.php
 
 namespace App\Worker;
 
@@ -11,6 +10,7 @@ use App\Tui\Exception\ProblemException;
 use App\Tui\State;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
@@ -26,7 +26,8 @@ final class QuestionHandlerWorker implements WorkerInterface
         private readonly string $projectDir,
         private LoggerInterface $logger,
         private State $state,
-        private Agent $agent
+        private Agent $agent,
+        private MessageBusInterface $messageBus,
     ) {}
 
     public function start(string $requestId, string $question, array $opts = []): void
@@ -37,6 +38,7 @@ final class QuestionHandlerWorker implements WorkerInterface
         $payload = json_encode([
             'type' => 'StartQuestion',
             'requestId' => $requestId,
+            'chatId' => $this->agent->getActiveChat()?->getId(),
             'question' => $question,
             'opts' => $opts,
         ], JSON_UNESCAPED_UNICODE);

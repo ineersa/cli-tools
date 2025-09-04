@@ -16,6 +16,7 @@ use App\Tui\Loop\LoopRunner;
 use App\Tui\State;
 use App\Tui\Utility\InputUtilities;
 use App\Tui\Utility\TerminalUtilities;
+use App\Worker\ConsumerWorker;
 use PhpTui\Term\Actions;
 use PhpTui\Term\ClearType;
 use PhpTui\Term\Terminal;
@@ -39,6 +40,7 @@ final class AiClientCommand extends Command
         private readonly LoggerInterface $logger,
         private readonly Terminal $terminal,
         private readonly LoopRunner $loopRunner,
+        private readonly ConsumerWorker $consumerWorker,
     ) {
         parent::__construct();
     }
@@ -57,6 +59,8 @@ final class AiClientCommand extends Command
             $this->terminal->execute(Actions::alternateScreenEnable());
             $this->terminal->execute(Actions::cursorHide());
             $this->terminal->enableRawMode();
+            // starting background consumer
+            $this->consumerWorker->start(uniqid('consumer_'));
 
             $this->loopRunner->boot();
 

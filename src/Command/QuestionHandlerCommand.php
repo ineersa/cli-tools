@@ -10,13 +10,17 @@ use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Process\Process;
 
 #[AsCommand(name: 'app:question-handler')]
 final class QuestionHandlerCommand extends Command
 {
+    private array $finalUsage;
+
+    private mixed $tool = null;
+
     public function __construct(
-        private Agent $agent,
+        private Agent           $agent,
+        private LoggerInterface $logger,
     ) {
         parent::__construct();
     }
@@ -63,7 +67,11 @@ final class QuestionHandlerCommand extends Command
             });
 
             $this->emit($output, ['type' => 'Citations', 'requestId' => $rid, 'items' => $ctx['citations'] ?? []]);
-            $this->emit($output, ['type' => 'Done', 'requestId' => $rid, 'finishReason' => 'stop', 'usage' => []]);
+            $this->emit($output, [
+                'type' => 'Done', 'requestId' => $rid, 'finishReason' => 'done',
+                'usage' => $this->finalUsage, 'tool' => $this->tool
+                ]
+            );
             return Command::SUCCESS;
         } catch (\Throwable $e) {
             $this->emit($output, ['type' => 'Error', 'requestId' => $rid, 'code' => $e->getCode(), 'message' => $e->getMessage()]);
@@ -102,6 +110,13 @@ final class QuestionHandlerCommand extends Command
         $params = [
             'messages' => [
                 [
+                    'role' => 'system', 'content' =>
+                    "You may think privately (analysis channel), but DO NOT hide tool calls there.\n".
+                    "If a tool is needed, emit a single tool call via the OpenAI tool_calls interface.\n".
+                    "Never place tool calls inside <|channel|>analysis<|message|>.\n".
+                    "If a tool is not needed, emit a final assistant answer."
+                ],
+                [
                     'role' => 'user',
                     'content' => $ctx['question']
                 ]
@@ -115,7 +130,20 @@ final class QuestionHandlerCommand extends Command
     {
          foreach ($this->agent->largeModel->completionStreamed($params) as $event) {
              $delta = $event->choices[0]->delta->content ?? '';
-             if ($delta !== '') $onDelta($delta);
+             if ($delta !== '') {
+                 $onDelta($delta);
+             }
+             $tc = $event->choices[0]->delta->toolCalls[0] ?? null;
+             if ($tc) {
+                $this->tool = $tc;
+             }
+             if ($event->usage !== null) {
+                 $this->finalUsage = [
+                     'promptTokens'     => $event->usage->promptTokens,
+                     'completionTokens' => $event->usage->completionTokens,
+                     'totalTokens'      => $event->usage->totalTokens,
+                 ];
+             }
              if ($this->checkTerminate()) return;
          }
     }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Tui\Command;
 
 use App\Tui\Exception\ProblemException;
-use Symfony\Component\DependencyInjection\Attribute\TaggedIterator;
+use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 class Runner
 {
@@ -16,7 +16,7 @@ class Runner
      * @param iterable<CommandInterface> $commandsList
      */
     public function __construct(
-        #[TaggedIterator('app.tui.command')] iterable $commandsList,
+        #[AutowireIterator('app.tui.command')] iterable $commandsList,
     ) {
         $this->commandsList = $commandsList;
     }

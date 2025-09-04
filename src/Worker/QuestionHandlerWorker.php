@@ -42,6 +42,7 @@ final class QuestionHandlerWorker implements WorkerInterface
         ], JSON_UNESCAPED_UNICODE);
 
         $this->contentItemIdx = -1;
+        $this->responseBuffer = '';
         $this->process = new Process([PHP_BINARY, $this->projectDir.'/bin/console', 'app:question-handler']);
         $this->process->setTimeout(null);
         $input = new InputStream();
@@ -58,14 +59,6 @@ final class QuestionHandlerWorker implements WorkerInterface
             switch ($msg['type'] ?? '') {
                 case 'StreamDelta':
                     $this->responseBuffer .= $msg['delta'];
-                    $item = ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $this->responseBuffer);
-                    $item->height = 0;
-
-                    if ($this->contentItemIdx === -1) {
-                        $this->contentItemIdx = $this->state->pushContentItem($item);
-                    } else {
-                        $this->state->pushContentItem($item, $this->contentItemIdx);
-                    }
 
                     $this->state->setRequireReDrawing(true);
                     break;
@@ -79,8 +72,12 @@ final class QuestionHandlerWorker implements WorkerInterface
                     // TODO push citations?
                     break;
                 case 'Done':
+                    $message = "Message: " . $msg['finishReason'] ?? 'stop' . "\n";
+                    if ($msg['usage']) {
+                        $message .= " Usage: " . json_encode($msg['usage']) . "\n";
+                    }
                     $this->state->setDynamicIslandComponents([
-                        ProgressComponent::NAME => new ProgressComponent($msg['finishReason'] ?? 'stop', $this->state),
+                        ProgressComponent::NAME => new ProgressComponent($message, $this->state),
                     ]);
                     $this->agent->detachWorker($requestId);
                     break;
@@ -88,6 +85,14 @@ final class QuestionHandlerWorker implements WorkerInterface
                     $this->agent->detachWorker($requestId);
                     throw new ProblemException($msg['message'] ?? 'Unknown');
             }
+        }
+        // push content item once
+        $item = ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $this->responseBuffer);
+        $item->height = 0;
+        if ($this->contentItemIdx === -1) {
+            $this->contentItemIdx = $this->state->pushContentItem($item);
+        } else {
+            $this->state->pushContentItem($item, $this->contentItemIdx);
         }
     }
 

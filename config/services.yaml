@@ -29,6 +29,9 @@ services:
     _instanceof:
         App\Tui\Command\CommandInterface:
             tags: [ 'app.tui.command' ]
+        App\Tui\Loop\TimerProviderInterface:
+            tags: [ 'app.tui.loop.timer_provider' ]
+
 
     monolog.formatter.json_with_stacktraces:
         class: Monolog\Formatter\JsonFormatter

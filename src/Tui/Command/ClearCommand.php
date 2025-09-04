@@ -6,7 +6,6 @@ namespace App\Tui\Command;
 
 use App\Tui\Component\TextContentComponentItems;
 use App\Tui\Exception\CompleteException;
-use App\Tui\Exception\ProblemException;
 use App\Tui\State;
 
 class ClearCommand implements CommandInterface

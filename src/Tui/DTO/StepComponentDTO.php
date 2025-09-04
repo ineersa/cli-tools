@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\DTO;
 
 use PhpTui\Tui\Style\Style;
@@ -13,6 +15,5 @@ class StepComponentDTO
         public readonly ?string $hint = null,
         public readonly ?string $progress = null,
     ) {
-
     }
 }

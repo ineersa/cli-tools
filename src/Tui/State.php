@@ -6,6 +6,7 @@ namespace App\Tui;
 
 use App\Agent\Agent;
 use App\Agent\Mode;
+use App\Entity\Project;
 use App\Events\ModeChangedEvent;
 use App\Tui\Command\InteractionSessionInterface;
 use App\Tui\Component\Component;
@@ -50,7 +51,8 @@ class State
     private bool $requireReDrawing = false;
 
     private ?InteractionSessionInterface $interactionSession = null;
-    private \App\Entity\Project $project;
+    private Project $project;
+    private string $smallModel;
 
     public function __construct(
         private readonly EventDispatcherInterface $eventDispatcher,
@@ -58,6 +60,7 @@ class State
     ) {
         $this->mode = Mode::getDefaultMode();
         $this->model = $this->agent->getModel();
+        $this->smallModel = $this->agent->getSmallModel();
         $this->project = $this->agent->getProject();
     }
 
@@ -181,9 +184,25 @@ class State
         $this->contentItems = $contentItems;
     }
 
-    public function pushContentItem(ContentItem $contentWidget): void
+    public function pushContentItem(ContentItem $contentWidget, ?int $index = null): int
     {
+        if ($index === null) {
+            $this->contentItems[] = $contentWidget;
+            return array_key_last($this->contentItems);
+        }
+
+        $count = count($this->contentItems);
+        if ($index < 0) {
+            $index = 0;
+        }
+
+        if ($index < $count) {
+            array_splice($this->contentItems, $index, 1, [$contentWidget]);
+            return $index;
+        }
+
         $this->contentItems[] = $contentWidget;
+        return array_key_last($this->contentItems);
     }
 
     public function popContentItem(): ContentItem
@@ -247,14 +266,26 @@ class State
         return $this;
     }
 
-    public function getProject(): \App\Entity\Project
+    public function getProject(): Project
     {
         return $this->project;
     }
 
-    public function setProject(\App\Entity\Project $project): self
+    public function setProject(Project $project): self
     {
         $this->project = $project;
+
+        return $this;
+    }
+
+    public function getSmallModel(): string
+    {
+        return $this->smallModel;
+    }
+
+    public function setSmallModel(string $smallModel): self
+    {
+        $this->smallModel = $smallModel;
 
         return $this;
     }

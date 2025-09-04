@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Command\Project;
 
 use App\Service\ProjectService;
@@ -14,8 +16,7 @@ class ProjectListCommand
         private ProjectService $projectService,
         private State $state,
         private SerializerInterface $serializer,
-    )
-    {
+    ) {
     }
 
     public function list(): never
@@ -37,6 +38,6 @@ class ProjectListCommand
         // we overtake controls for table
         $this->state->setEditing(false);
 
-        throw new CompleteException("/projects list \n Found " . count($projects) . " projects");
+        throw new CompleteException("/projects list \n Found ".\count($projects).' projects');
     }
 }

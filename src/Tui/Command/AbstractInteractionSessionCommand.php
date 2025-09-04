@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Command;
 
 use App\Tui\Application;
@@ -14,8 +16,12 @@ abstract class AbstractInteractionSessionCommand implements InteractionSessionIn
     public function __construct(
         private State $state,
         private Application $application,
-    )
+    ) {
+    }
+
+    public function cancel(): void
     {
+        $this->state->setInteractionSession(null);
     }
 
     protected function addStepComponent(StepComponentDTO $dto): void
@@ -24,10 +30,5 @@ abstract class AbstractInteractionSessionCommand implements InteractionSessionIn
         $this->state->setDynamicIslandComponents([
             $step,
         ]);
-    }
-
-    public function cancel(): void
-    {
-        $this->state->setInteractionSession(null);
     }
 }

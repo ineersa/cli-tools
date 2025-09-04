@@ -1,0 +1,134 @@
+<?php
+// src/Tui/Worker/QuestionProcess.php
+
+namespace App\Worker;
+
+use App\Agent\Agent;
+use App\Tui\Component\ContentItemFactory;
+use App\Tui\Component\ProblemComponent;
+use App\Tui\Component\ProgressComponent;
+use App\Tui\Exception\ProblemException;
+use App\Tui\State;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\Process\InputStream;
+use Symfony\Component\Process\Process;
+
+final class QuestionHandlerWorker implements WorkerInterface
+{
+    private Process $process;
+    private string $buffer = '';
+    private string $responseBuffer = '';
+    private int $contentItemIdx = -1;
+
+    public function __construct(
+        #[Autowire('%kernel.project_dir%')]
+        private readonly string $projectDir,
+        private LoggerInterface $logger,
+        private State $state,
+        private Agent $agent
+    ) {}
+
+    public function start(string $requestId, string $question, array $opts = []): void
+    {
+        if (isset($this->process) && $this->process->isRunning()) {
+            throw new ProblemException("Question handling process is already running.");
+        }
+        $payload = json_encode([
+            'type' => 'StartQuestion',
+            'requestId' => $requestId,
+            'question' => $question,
+            'opts' => $opts,
+        ], JSON_UNESCAPED_UNICODE);
+
+        $this->contentItemIdx = -1;
+        $this->process = new Process([PHP_BINARY, $this->projectDir.'/bin/console', 'app:question-handler']);
+        $this->process->setTimeout(null);
+        $input = new InputStream();
+        $input->write($payload . "\n");
+        $input->close();
+        $this->process->setInput($input);
+        $this->process->start(); // non-blocking
+        $this->agent->attachWorker($requestId, $this);
+    }
+
+    public function poll(string $requestId): void
+    {
+        foreach ($this->pump() as $msg) {
+            switch ($msg['type'] ?? '') {
+                case 'StreamDelta':
+                    $this->responseBuffer .= $msg['delta'];
+                    $item = ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $this->responseBuffer);
+                    $item->height = 0;
+
+                    if ($this->contentItemIdx === -1) {
+                        $this->contentItemIdx = $this->state->pushContentItem($item);
+                    } else {
+                        $this->state->pushContentItem($item, $this->contentItemIdx);
+                    }
+
+                    $this->state->setRequireReDrawing(true);
+                    break;
+                case 'Progress':
+                    $this->state->setDynamicIslandComponents([
+                        ProgressComponent::NAME => new ProgressComponent($msg['phase'] ?? 'unknown', $this->state),
+                    ]);
+                    $this->state->setRequireReDrawing(true);
+                    break;
+                case 'Citations':
+                    // TODO push citations?
+                    break;
+                case 'Done':
+                    $this->state->setDynamicIslandComponents([
+                        ProgressComponent::NAME => new ProgressComponent($msg['finishReason'] ?? 'stop', $this->state),
+                    ]);
+                    $this->agent->detachWorker($requestId);
+                    break;
+                case 'Error':
+                    $this->agent->detachWorker($requestId);
+                    throw new ProblemException($msg['message'] ?? 'Unknown');
+            }
+        }
+    }
+
+    private function pump(): array
+    {
+        $out = $this->process->getIncrementalOutput();   // grabs new stdout
+        $err = $this->process->getIncrementalErrorOutput(); // optional: surface errors to a log
+
+        if ($err !== '') {
+            $this->logger->error('Question handler worker error!', [
+                'error' => $err,
+            ]);
+            throw new ProblemException($err);
+        }
+        if ($out !== '') {
+            $this->buffer .= $out;
+        }
+
+        $messages = [];
+        while (($pos = strpos($this->buffer, "\n")) !== false) {
+            $line = substr($this->buffer, 0, $pos);
+            $this->buffer = substr($this->buffer, $pos + 1);
+            if ($line === '') continue;
+            $msg = json_decode($line, true);
+            if (is_array($msg)) $messages[] = $msg;
+        }
+
+        return $messages;
+    }
+
+    public function isRunning(): bool
+    {
+        return $this->process->isRunning();
+    }
+
+    public function stop(): void
+    {
+        if ($this->process->isRunning()) {
+            $this->process->signal(SIGTERM);
+            $this->process->wait();
+            throw new ProblemException('Process terminated.');
+        }
+    }
+}

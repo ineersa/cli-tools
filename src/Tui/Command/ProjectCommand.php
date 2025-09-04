@@ -10,7 +10,6 @@ use App\Tui\Command\Project\ProjectDeleteCommand;
 use App\Tui\Command\Project\ProjectEditCommand;
 use App\Tui\Command\Project\ProjectListCommand;
 use App\Tui\Exception\ProblemException;
-use App\Tui\State;
 
 class ProjectCommand implements CommandInterface
 {
@@ -21,18 +20,17 @@ class ProjectCommand implements CommandInterface
         private ProjectEditCommand $projectEditCommand,
         private ProjectChangeCommand $projectChangeCommand,
     ) {
-
     }
 
     public function supports(string $command): bool
     {
         $command = trim($command);
-        if ($command === '') {
+        if ('' === $command) {
             return false;
         }
         $tokens = preg_split('/\s+/', $command);
 
-        if (!$tokens || strtolower($tokens[0]) !== '/project') {
+        if (!$tokens || '/project' !== strtolower($tokens[0])) {
             return false;
         }
 
@@ -45,55 +43,56 @@ Commands available:
 'change #ID => 'change current project to project #123'
 HINT;
         // TODO refactor it to pass and throw in execute
-        if (count($tokens) === 1) {
+        if (1 === \count($tokens)) {
             throw new ProblemException($hint);
         }
 
         $sub = strtolower($tokens[1]);
 
         $isId = static function (?string $token): bool {
-            if ($token === null) {
+            if (null === $token) {
                 return false;
             }
             if (!str_starts_with($token, '#')) {
                 return false;
             }
             $token = ltrim($token, '#');
-            return $token !== '' && ctype_digit($token);
+
+            return '' !== $token && ctype_digit($token);
         };
 
         return match ($sub) {
-            'list' => count($tokens) === 2 && $tokens[1] === 'list',
-            'create' => count($tokens) === 2 && $tokens[1] === 'create',
-            'delete' => (count($tokens) === 3 && $isId($tokens[2]) && $tokens[1] === 'delete'),
-            'edit'   => (count($tokens) === 3 && $isId($tokens[2]) && $tokens[1] === 'edit'),
-            'change'   => (count($tokens) === 3 && $isId($tokens[2]) && $tokens[1] === 'change'),
-            default  => throw new ProblemException($hint),
+            'list' => 2 === \count($tokens) && 'list' === $tokens[1],
+            'create' => 2 === \count($tokens) && 'create' === $tokens[1],
+            'delete' => (3 === \count($tokens) && $isId($tokens[2]) && 'delete' === $tokens[1]),
+            'edit' => (3 === \count($tokens) && $isId($tokens[2]) && 'edit' === $tokens[1]),
+            'change' => (3 === \count($tokens) && $isId($tokens[2]) && 'change' === $tokens[1]),
+            default => throw new ProblemException($hint),
         };
     }
 
     public function execute(string $command): never
     {
         $tokens = preg_split('/\s+/', $command);
-        if ($tokens[1] === 'create') {
+        if ('create' === $tokens[1]) {
             $this->projectCreateCommand->sendInitialMessage();
         }
-        if ($tokens[1] === 'list') {
+        if ('list' === $tokens[1]) {
             $this->projectListCommand->list();
         }
-        if ($tokens[1] === 'delete') {
+        if ('delete' === $tokens[1]) {
             $this->projectDeleteCommand
-                ->delete((int)ltrim($tokens[2], '#'));
+                ->delete((int) ltrim($tokens[2], '#'));
         }
-        if ($tokens[1] === 'change') {
+        if ('change' === $tokens[1]) {
             $this->projectChangeCommand
-                ->changeTo((int)ltrim($tokens[2], '#'));
+                ->changeTo((int) ltrim($tokens[2], '#'));
         }
-        if ($tokens[1] === 'edit') {
+        if ('edit' === $tokens[1]) {
             $this->projectEditCommand
-                ->setId((int)ltrim($tokens[2], '#'))
+                ->setId((int) ltrim($tokens[2], '#'))
                 ->sendInitialMessage();
         }
-        throw new ProblemException($command . ' not implemented yet');
+        throw new ProblemException($command.' not implemented yet');
     }
 }

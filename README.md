@@ -7,7 +7,14 @@ bin/console --env=test doctrine:database:create
 ```bash
 php -d xdebug.mode=debug -d xdebug.client_host=127.0.0.1 -d xdebug.client_port=9003 -d xdebug.start_with_request=yes ./bin/console ai:client
 ```
-
+```bash
+./bin/console app:logs --limit=10
+./bin/console app:logs --limit=10 --id=1
+```
+```bash
+echo '{"type":"StartQuestion","requestId":"q-1","question":"Hello world"}' \
+  | php bin/console app:question-handler | jq -c .
+```
 
 ## Roadmap
  - Terminal UI interface 

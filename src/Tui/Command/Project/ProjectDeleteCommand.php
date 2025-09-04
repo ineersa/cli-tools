@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Command\Project;
 
 use App\Service\ProjectService;
@@ -11,7 +13,6 @@ class ProjectDeleteCommand
     public function __construct(
         private ProjectService $projectService,
     ) {
-
     }
 
     public function delete(int $id): never
@@ -22,6 +23,6 @@ class ProjectDeleteCommand
             throw new ProblemException('Project not found');
         }
         $this->projectService->delete($entity);
-        throw new CompleteException("/project delete \n Project #" . $id . " was successfully deleted.");
+        throw new CompleteException("/project delete \n Project #".$id.' was successfully deleted.');
     }
 }

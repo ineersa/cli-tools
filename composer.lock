@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5884e1b8fc28fa88174ef274adf2cb0b",
+    "content-hash": "628ea87463d2f199fa63d253be36e93f",
     "packages": [
         {
             "name": "behat/transliterator",
@@ -2581,6 +2581,39 @@
                 "source": "https://github.com/stof/StofDoctrineExtensionsBundle/tree/v1.14.0"
             },
             "time": "2025-05-01T08:00:32+00:00"
+        },
+        {
+            "name": "symfony/ai",
+            "version": "dev-dev",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ineersa/ai.git",
+                "reference": "4c61f6a9b7be002f97d5bdbd0f922caf1a07f3b0"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ineersa/ai/zipball/4c61f6a9b7be002f97d5bdbd0f922caf1a07f3b0",
+                "reference": "4c61f6a9b7be002f97d5bdbd0f922caf1a07f3b0",
+                "shasum": ""
+            },
+            "require-dev": {
+                "php": ">=8.2",
+                "php-cs-fixer/shim": "^3.75",
+                "symfony/filesystem": "^6.4 || ^7.0",
+                "symfony/finder": "^6.4 || ^7.0"
+            },
+            "type": "library",
+            "license": [
+                "MIT"
+            ],
+            "description": "Symfony AI Monorepo",
+            "keywords": [
+                "dev"
+            ],
+            "support": {
+                "source": "https://github.com/ineersa/ai/tree/dev"
+            },
+            "time": "2025-08-31T02:25:36+00:00"
         },
         {
             "name": "symfony/cache",
@@ -9318,7 +9351,9 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {
+        "symfony/ai": 20
+    },
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {

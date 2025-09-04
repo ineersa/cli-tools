@@ -5,14 +5,12 @@ declare(strict_types=1);
 namespace App\Tui\Component;
 
 use App\Tui\DTO\StepComponentDTO;
-use App\Tui\Exception\ProblemException;
 use App\Tui\State;
 use PhpTui\Term\Event;
 use PhpTui\Term\Event\CodedKeyEvent;
 use PhpTui\Term\KeyCode;
 use PhpTui\Tui\Color\AnsiColor;
 use PhpTui\Tui\Extension\Core\Widget\BlockWidget;
-use PhpTui\Tui\Extension\Core\Widget\GridWidget;
 use PhpTui\Tui\Extension\Core\Widget\ParagraphWidget;
 use PhpTui\Tui\Layout\Constraint;
 use PhpTui\Tui\Style\Style;
@@ -42,6 +40,7 @@ class StepComponent implements Component, ConstraintAwareComponent
         if ($this->stepComponentDTO->progress) {
             $lines[] = Line::fromSpans(Span::styled($this->stepComponentDTO->progress, Style::default()->fg(AnsiColor::LightGreen)));
         }
+
         return BlockWidget::default()
             ->titles(Title::fromString($this->stepComponentDTO->title))
             ->borders(Borders::ALL)

@@ -1,0 +1,42 @@
+parameters:
+    llm.small:
+        api_base: '%env(string:SMALL_MODEL_BASE_URL)%'
+        api_key: '%env(string:SMALL_MODEL_API_KEY)%'
+        model:    '%env(string:SMALL_MODEL_MODEL)%'
+        max_input_tokens: 32768
+        max_output_tokens: 32768
+        max_tokens: 32768
+        supports:
+            function_calling: true
+            response_schema: true
+            reasoning: true
+            tool_choice: true
+            web_search: true
+
+    llm.large:
+        api_base: '%env(string:LARGE_MODEL_BASE_URL)%'
+        api_key: '%env(string:LARGE_MODEL_API_KEY)%'
+        model:    '%env(string:LARGE_MODEL_MODEL)%'
+        max_input_tokens: 65536
+        max_output_tokens: 32768
+        max_tokens: 65536
+        supports:
+            function_calling: true
+            response_schema: true
+            reasoning: true
+            tool_choice: true
+            web_search: true
+
+services:
+    llm.smallModel:
+        class: App\Llm\LlmClient
+        factory: ['App\Llm\LlmClientFactory', 'create']
+        arguments: ['%llm.small%']
+
+    llm.largeModel:
+        class: App\Llm\LlmClient
+        factory: ['App\Llm\LlmClientFactory', 'create']
+        arguments: ['%llm.large%']
+
+    App\Llm\LlmClient $smallModel: '@llm.smallModel'
+    App\Llm\LlmClient $largeModel: '@llm.largeModel'

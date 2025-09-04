@@ -32,17 +32,20 @@ class StatusComponent implements Component
     {
         $statusLeft = ParagraphWidget::fromSpans(
             Span::fromString($this->state->getProject()->getName()),
-            Span::styled('(' . $this->state->getProject()->getWorkdir() . ')', Style::default()->cyan())
+            Span::styled('('.$this->state->getProject()->getWorkdir().')', Style::default()->cyan())
         );
         $statusCenter = ParagraphWidget::fromText(Text::fromString($this->state->getMode()->value.' (Shift+Tab)')->red());
-        $statusRight = ParagraphWidget::fromText(Text::fromString($this->state->getModel().' 100%')->green());
+        $statusRight = ParagraphWidget::fromSpans(
+            Span::styled($this->state->getModel(), Style::default()->green()),
+            Span::styled('('.$this->state->getSmallModel().')', Style::default()->darkGray())
+        );
 
         $statusGrid = GridWidget::default()
             ->direction(Direction::Horizontal)
             ->constraints(
                 Constraint::percentage(45),
-                Constraint::percentage(45),
-                Constraint::percentage(10),
+                Constraint::percentage(30),
+                Constraint::percentage(35),
             )
             ->widgets($statusLeft, $statusCenter, $statusRight);
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service;
 
 use App\Entity\Project;
@@ -27,7 +29,6 @@ class ProjectService
 
     /**
      * @param array{name: string, workdir: string, is_default: bool, instructions: string} $data
-     * @return Project
      */
     public function create(array $data): Project
     {

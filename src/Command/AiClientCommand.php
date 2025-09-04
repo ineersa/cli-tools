@@ -8,7 +8,9 @@ use App\Agent\Agent;
 use App\Agent\Mode;
 use App\Tui\Application;
 use App\Tui\Command\Runner;
+use App\Tui\Component\ProblemComponent;
 use App\Tui\Exception\ExitInterruptException;
+use App\Tui\Exception\ProblemException;
 use App\Tui\Exception\UserInterruptException;
 use App\Tui\State;
 use App\Tui\Utility\InputUtilities;
@@ -63,6 +65,13 @@ final class AiClientCommand extends Command
 
             // main loop
             while (true) { // @phpstan-ignore while.alwaysTrue
+                try {
+                    $this->agent->pollWorkers();
+                } catch (ProblemException $problemException) {
+                    $this->state->setDynamicIslandComponents([
+                        ProblemComponent::NAME => new ProblemComponent($problemException, $this->state),
+                    ]);
+                }
                 $this->app->listenTerminalEvents();
                 $display->draw($this->app->layout());
                 [, $caretLine, $caretCol] =

@@ -83,8 +83,6 @@ final class Clipboard
 
     /**
      * @param string[] $cmd
-     * @param string $input
-     * @return bool
      */
     private static function runPipe(array $cmd, string $input): bool
     {

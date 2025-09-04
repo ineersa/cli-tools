@@ -1,14 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Command\Project;
 
-use App\Repository\ProjectRepository;
 use App\Service\ProjectService;
 use App\Tui\Application;
 use App\Tui\Command\AbstractInteractionSessionCommand;
-use App\Tui\Command\InteractionSessionInterface;
-use App\Tui\Component\ContentItemFactory;
-use App\Tui\Component\StepComponent;
 use App\Tui\DTO\StepComponentDTO;
 use App\Tui\Exception\CompleteException;
 use App\Tui\Exception\FollowupException;
@@ -20,15 +18,15 @@ use PhpTui\Tui\Style\Style;
 final class ProjectCreateCommand extends AbstractInteractionSessionCommand
 {
     public const COMMAND_TITLE = 'Create project';
+    private array $data = [];
 
     public function __construct(
         private State $state,
         private Application $application,
         private ProjectService $projectService,
-    ){
+    ) {
         parent::__construct($this->state, $this->application);
     }
-    private array $data = [];
 
     public function step(string $line): never
     {
@@ -70,7 +68,7 @@ final class ProjectCreateCommand extends AbstractInteractionSessionCommand
                 $this->application->clearInput();
                 throw new FollowupException();
             case 3: // default
-                $this->data['is_default'] = strtolower($line) === 'y';
+                $this->data['is_default'] = 'y' === strtolower($line);
                 $this->step = 4;
                 $dto = new StepComponentDTO(
                     title: self::COMMAND_TITLE,
@@ -89,7 +87,7 @@ final class ProjectCreateCommand extends AbstractInteractionSessionCommand
                     title: self::COMMAND_TITLE,
                     question: 'Confirm save? (y/N):',
                     borderStyle: Style::default()->fg(AnsiColor::LightYellow),
-                    hint: sprintf(
+                    hint: \sprintf(
                         'name=%s, workdir=%s, default=%s, instructions=%s',
                         $this->data['name'],
                         $this->data['workdir'],
@@ -102,7 +100,7 @@ final class ProjectCreateCommand extends AbstractInteractionSessionCommand
                 $this->application->clearInput();
                 throw new FollowupException();
             default: // commit
-                if (strtolower($line) !== 'y') {
+                if ('y' !== strtolower($line)) {
                     $this->cancel();
                     throw new ProblemException('Cancelled.');
                 }
@@ -113,7 +111,7 @@ final class ProjectCreateCommand extends AbstractInteractionSessionCommand
                 }
                 $dto = new StepComponentDTO(
                     title: self::COMMAND_TITLE,
-                    question: sprintf('Project %s has been created', $this->data['name']),
+                    question: \sprintf('Project %s has been created', $this->data['name']),
                     borderStyle: Style::default()->fg(AnsiColor::LightGreen),
                 );
                 $this->addStepComponent($dto);
@@ -123,7 +121,7 @@ final class ProjectCreateCommand extends AbstractInteractionSessionCommand
                     'is_default' => false,
                     'instructions' => 'AGENTS.md',
                 ];
-                $text = sprintf("/project create \n Project #%s has been created", $project->getId());
+                $text = \sprintf("/project create \n Project #%s has been created", $project->getId());
                 throw new CompleteException($text);
         }
     }

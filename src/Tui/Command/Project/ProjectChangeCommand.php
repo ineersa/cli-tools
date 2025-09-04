@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Command\Project;
 
 use App\Service\ProjectService;
@@ -11,8 +13,7 @@ class ProjectChangeCommand
 {
     public function __construct(
         private ProjectService $projectService, private readonly State $state,
-    )
-    {
+    ) {
     }
 
     public function changeTo(int $id): never
@@ -24,6 +25,6 @@ class ProjectChangeCommand
         }
         $this->state->setProject($entity);
 
-        throw new CompleteException("/project change \n Project changed to #" . $id . ".");
+        throw new CompleteException("/project change \n Project changed to #".$id.'.');
     }
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Command;
 
 use App\Tui\Exception\FollowupException;
@@ -16,7 +18,6 @@ interface InteractionSessionInterface
 
     /**
      * @throws FollowupException
-     * @return never
      */
     public function sendInitialMessage(): never;
 

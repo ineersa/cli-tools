@@ -1,9 +1,10 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Component;
 
 use App\Tui\State;
-use PhpTui\Cassowary\Row;
 use PhpTui\Term\Event;
 use PhpTui\Term\Event\CodedKeyEvent;
 use PhpTui\Term\KeyCode;
@@ -27,7 +28,7 @@ class TableListComponent implements Component, ConstraintAwareComponent
      */
     public function __construct(
         private State $state,
-        private array $data
+        private array $data,
     ) {
         $this->tableState = new TableState();
     }
@@ -40,14 +41,15 @@ class TableListComponent implements Component, ConstraintAwareComponent
             }, array_keys($this->data[0]))
         );
         $headerRow->style = Style::default()->fg(AnsiColor::LightYellow);
+
         return TableWidget::default()
             ->highlightStyle(Style::default()->black()->onCyan())
             ->state($this->tableState)
             ->select($this->selected)
             ->highlightSymbol('X')
             ->widths(...array_map(function (string $value) {
-                    return Constraint::percentage($value);
-                }, $this->calculatePercentage())
+                return Constraint::percentage($value);
+            }, $this->calculatePercentage())
             )
             ->header(
                 $headerRow
@@ -61,6 +63,39 @@ class TableListComponent implements Component, ConstraintAwareComponent
             }, $this->data));
     }
 
+    public function handle(Event $event): void
+    {
+        if ($event instanceof CodedKeyEvent && KeyCode::Esc === $event->code) {
+            $components = $this->state->getDynamicIslandComponents();
+            unset($components[self::NAME]);
+            $this->state->setDynamicIslandComponents($components);
+            $this->state->setEditing(true);
+        }
+        if ($event instanceof CodedKeyEvent) {
+            if (KeyCode::Down === $event->code) {
+                if ($this->selected < \count($this->data) - 1) {
+                    ++$this->selected;
+                }
+            }
+            if (KeyCode::Up === $event->code) {
+                if ($this->selected > 0) {
+                    --$this->selected;
+                }
+            }
+            if (KeyCode::Home === $event->code) {
+                $this->selected = 0;
+            }
+            if (KeyCode::End === $event->code) {
+                $this->selected = \count($this->data) - 1;
+            }
+        }
+    }
+
+    public function constraint(): Constraint
+    {
+        return Constraint::min(3);
+    }
+
     private function calculatePercentage(): array
     {
         $longestByField = [];
@@ -68,7 +103,7 @@ class TableListComponent implements Component, ConstraintAwareComponent
         foreach ($this->data as $row) {
             $stringLength = 0;
             foreach ($row as $key => $value) {
-                $length = mb_strlen((string)$value) + 5; // some buffer
+                $length = mb_strlen((string) $value) + 5; // some buffer
                 if (!isset($longestByField[$key])) {
                     $longestByField[$key] = $length;
                 }
@@ -81,7 +116,7 @@ class TableListComponent implements Component, ConstraintAwareComponent
                 $longestLine = $stringLength;
             }
         }
-        if ($longestLine === 0) {
+        if (0 === $longestLine) {
             return [];
         }
         $percentage = [];
@@ -90,37 +125,5 @@ class TableListComponent implements Component, ConstraintAwareComponent
         }
 
         return $percentage;
-    }
-    public function handle(Event $event): void
-    {
-        if ($event instanceof CodedKeyEvent && KeyCode::Esc === $event->code) {
-            $components = $this->state->getDynamicIslandComponents();
-            unset($components[self::NAME]);
-            $this->state->setDynamicIslandComponents($components);
-            $this->state->setEditing(true);
-        }
-        if ($event instanceof CodedKeyEvent) {
-            if ($event->code === KeyCode::Down) {
-                if ($this->selected < count($this->data) - 1) {
-                    $this->selected++;
-                }
-            }
-            if ($event->code === KeyCode::Up) {
-                if ($this->selected > 0) {
-                    $this->selected--;
-                }
-            }
-            if ($event->code === KeyCode::Home) {
-                $this->selected = 0;
-            }
-            if ($event->code === KeyCode::End) {
-                $this->selected = count($this->data) - 1;
-            }
-        }
-    }
-
-    public function constraint(): Constraint
-    {
-        return Constraint::min(3);
     }
 }

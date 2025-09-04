@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tui;
 
-use App\Agent\Agent;
 use App\Events\QuestionReceivedEvent;
 use App\Tui\Command\Runner;
 use App\Tui\Component\AutocompleteComponent;
@@ -23,6 +22,7 @@ use App\Tui\Exception\ProblemException;
 use App\Tui\Exception\UserInterruptException;
 use App\Tui\Utility\InputUtilities;
 use App\Tui\Utility\TerminalUtilities;
+use App\Worker\QuestionHandlerWorker;
 use PhpTui\Term\Event\CharKeyEvent;
 use PhpTui\Term\Event\CodedKeyEvent;
 use PhpTui\Term\KeyModifiers;
@@ -30,12 +30,10 @@ use PhpTui\Term\Terminal;
 use PhpTui\Tui\Extension\Core\Widget\GridWidget;
 use PhpTui\Tui\Widget\Direction;
 use PhpTui\Tui\Widget\Widget;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 final class Application
 {
-
     private readonly Layout $layout;
 
     public function __construct(
@@ -119,12 +117,14 @@ final class Application
                         }
                     }
 
+                    if (!$this->state->getProject()) {
+                        throw new ProblemException('Please specify a project first.');
+                    }
                     // TODO push to history, dispatch event, process command
                     $input = $this->state->getInput();
-                    $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::USER_CARD, $this->state->getInput()));
-
+                    $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::USER_CARD, $input));
                     $this->clearInput();
-                    //$this->eventDispatcher->dispatch(new QuestionReceivedEvent($input));
+                    $this->eventDispatcher->dispatch(new QuestionReceivedEvent(uniqid("q_"), $input));
                     continue;
                 }
                 // Processing char here because it's used later for input and autocomplete
@@ -176,7 +176,7 @@ final class Application
                 ));
     }
 
-    public function clearInput()
+    public function clearInput(): void
     {
         $this->layout->inputComponent->clearAll();
         if (!$this->state->getInteractionSession()) {

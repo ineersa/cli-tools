@@ -2,15 +2,18 @@
 
 namespace App\Message;
 
+use App\Agent\Mode;
 use Symfony\Component\Messenger\Attribute\AsMessage;
 
 #[AsMessage('async')]
 final class AssistantResponseReceived
 {
      public function __construct(
-         public int $chatId,
+         public int $projectId,
          public string $requestId,
          public string $response,
+         public Mode $mode,
+         public ?int $chatId = null,
          public ?string $finishReason = null,
          public ?string $promptTokens = null,
          public ?string $completionTokens = null,

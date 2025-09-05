@@ -8,7 +8,7 @@ framework:
                 retry_strategy:
                     max_retries: 3           # total attempts = 1 (initial) + 3 retries
                     delay: 1000              # initial backoff delay in ms (1s)
-                    multiplier: 2.0          # exponential factor: 1s, 2s, 4s
+                    multiplier: 3.0          # exponential factor: 1s, 3s, 9s
                     max_delay: 60000         # cap backoff at 60s
                     jitter: 0.1              # +/-10% randomization to avoid thundering herds
             failed: 'doctrine://default?queue_name=failed'

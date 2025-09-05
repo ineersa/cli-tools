@@ -36,7 +36,7 @@ class ChatService
         $chat->setStatus(ChatStatus::Open);
 
         $openedChats = $this->chatRepository->findBy([
-            'projectId' => $projectId,
+            'project' => $projectId,
             'mode' => $mode,
             'status' => ChatStatus::Open,
         ]);
@@ -51,7 +51,7 @@ class ChatService
         return $chat;
     }
 
-    public function saveUserTurn(Chat $chat, string $question): ChatTurn
+    public function saveUserTurn(Chat $chat, string $question, string $requestId): ChatTurn
     {
         $chatTurn = new ChatTurn();
         $chatTurn->setChat($chat);
@@ -59,6 +59,7 @@ class ChatService
         $idx = $chat->getLastTurn() ? $chat->getLastTurn()->getIdx() + 1 : 0;
         $chatTurn->setIdx($idx);
         $chatTurn->setContext($question);
+        $chatTurn->setRequestId($requestId);
         $this->manager->persist($chatTurn);
 
         $chat->setLastTurn($chatTurn);
@@ -66,5 +67,51 @@ class ChatService
         $this->manager->refresh($chatTurn);
 
         return $chatTurn;
+    }
+
+    public function saveAssistantTurn(
+        Chat $chat,
+        string $response,
+        string $requestId,
+        ?string $finishReason = null,
+        ?int $promptTokens = null,
+        ?int $completionTokens = null,
+        ?int $totalTokens = null
+    ) : ChatTurn {
+        $chatTurn = new ChatTurn();
+        $chatTurn->setChat($chat);
+        $chatTurn->setType(ChatTurnType::Assistant);
+        $idx = $chat->getLastTurn() ? $chat->getLastTurn()->getIdx() + 1 : 0;
+        $chatTurn->setIdx($idx);
+        $chatTurn->setContext($response);
+        $chatTurn->setRequestId($requestId);
+        $chatTurn->setFinishReason($finishReason);
+        $chatTurn->setPromptTokens($promptTokens);
+        $chatTurn->setCompletionTokens($completionTokens);
+        $chatTurn->setTotalTokens($totalTokens);
+        $this->manager->persist($chatTurn);
+
+        $chat->setLastTurn($chatTurn);
+        $this->manager->flush();
+        $this->manager->refresh($chatTurn);
+
+        return $chatTurn;
+    }
+
+    public function getOpenChat(int $projectId, Mode $mode): ?Chat
+    {
+        return $this->chatRepository->findOneBy([
+            'project' => $projectId,
+            'mode' => $mode,
+            'status' => ChatStatus::Open,
+        ]);
+    }
+
+    public function resetOpenChat(Chat $chat): void
+    {
+        $chat->setStatus(ChatStatus::Archived);
+        // TODO dispatch event to create summary
+        $this->manager->flush();
+        $this->manager->refresh($chat);
     }
 }

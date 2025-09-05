@@ -6,6 +6,7 @@ namespace App\Agent;
 
 use App\Entity\Chat;
 use App\Llm\LlmClient;
+use App\Service\ChatService;
 use App\Service\ProjectService;
 use App\Tui\Exception\ProblemException;
 use App\Worker\WorkerInterface;
@@ -29,7 +30,8 @@ class Agent
     public function __construct(
         public readonly LlmClient $smallModel,
         public readonly LlmClient $largeModel,
-        ProjectService $projectService,
+        ProjectService            $projectService,
+        private ChatService               $chatService,
     ) {
         $this->mode = Mode::getDefaultMode();
         $this->project = $projectService->getDefaultProject();
@@ -119,9 +121,17 @@ class Agent
         return $this->activeChat;
     }
 
-    public function setActiveChat(?Chat $activeChat): self
+    public function setActiveChat(): self
     {
-        $this->activeChat = $activeChat;
+        if (!$this->getProject()) {
+            return $this;
+        }
+
+        $this->activeChat = $this->chatService
+            ->getOpenChat(
+                $this->getProject()->getId(),
+                $this->getMode()
+            );
 
         return $this;
     }

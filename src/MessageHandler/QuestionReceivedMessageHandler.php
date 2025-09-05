@@ -45,12 +45,14 @@ final class QuestionReceivedMessageHandler
 
         $chatTurn = $this->chatService->saveUserTurn(
             $chat,
-            $message->question
+            $message->question,
+            $message->requestId,
         );
 
         $this->logger->info('[QuestionReceivedMessageHandler] message processed', [
             'chatId' => $chat->getId(),
             'turnId' => $chatTurn->getId(),
+            'requestId' => $message->requestId,
         ]);
     }
 }

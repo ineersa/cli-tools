@@ -3,8 +3,8 @@
 namespace App\Worker;
 
 use App\Agent\Agent;
+use App\Message\AssistantResponseReceived;
 use App\Tui\Component\ContentItemFactory;
-use App\Tui\Component\ProblemComponent;
 use App\Tui\Component\ProgressComponent;
 use App\Tui\Exception\ProblemException;
 use App\Tui\State;
@@ -82,6 +82,20 @@ final class QuestionHandlerWorker implements WorkerInterface
                         ProgressComponent::NAME => new ProgressComponent($message, $this->state),
                     ]);
                     $this->agent->detachWorker($requestId);
+                    $message = new AssistantResponseReceived(
+                        projectId: (int)$this->agent->getProject()?->getId(),
+                        requestId: $requestId,
+                        response: $this->responseBuffer,
+                        mode: $this->agent->getMode(),
+                        chatId: $this->agent
+                            ->setActiveChat()
+                            ->getActiveChat()?->getId(),
+                        finishReason: $msg['finishReason'] ?? 'stop',
+                        promptTokens: $msg['usage']['promptTokens'] ?? null,
+                        completionTokens: $msg['usage']['completionTokens'] ?? null,
+                        totalTokens: $msg['usage']['totalTokens'] ?? null,
+                    );
+                    $this->messageBus->dispatch($message);
                     break;
                 case 'Error':
                     $this->agent->detachWorker($requestId);

@@ -30,8 +30,8 @@ class AutocompleteComponent implements Component
         ['name' => '/chat',    'desc' => 'manage conversation history', 'followup' => [
             'list' => 'show list of chats',
             'delete #' => 'delete chat #123',
-            'restore #' => 'restore chat #123, will use *COMPACT* version',
-            'restore-full #' => 'restore chat #123, will use *FULL* version',
+            'restore #' => 'restore chat #123 conversation',
+            'summary #' => 'show chat #123 summary',
             'clear-all' => 'delete all chats, if you want to start new chat use /clear',
         ]],
         ['name' => '/project', 'desc' => 'manage project and project settings', 'followup' => [
@@ -41,7 +41,6 @@ class AutocompleteComponent implements Component
             'edit #' => 'edit project #123',
             'change #' => 'change current project to project #123',
         ]],
-        ['name' => '/compact', 'desc' => 'compact current chat'],
         ['name' => '/clear',   'desc' => 'clear the screen and history, starts new chat'],
         ['name' => '/copy',    'desc' => 'copy the last result to clipboard'],
         ['name' => '/tools',   'desc' => 'check available tools'],

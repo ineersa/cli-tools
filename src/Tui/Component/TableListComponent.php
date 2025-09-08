@@ -47,17 +47,14 @@ class TableListComponent implements Component, ConstraintAwareComponent
             ->state($this->tableState)
             ->select($this->selected)
             ->highlightSymbol('X')
-            ->widths(...array_map(function (string $value) {
-                return Constraint::percentage($value);
-            }, $this->calculatePercentage())
-            )
+            ->widths(...$this->calculatePercentage())
             ->header(
                 $headerRow
             )
             ->rows(...array_map(function (array $data) {
                 return TableRow::fromCells(
                     ...array_map(function (mixed $value) {
-                        return TableCell::fromString($value);
+                        return TableCell::fromString((string)$value);
                     }, $data)
                 );
             }, $this->data));
@@ -96,6 +93,9 @@ class TableListComponent implements Component, ConstraintAwareComponent
         return Constraint::min(3);
     }
 
+    /**
+     * @return Constraint\PercentageConstraint[]
+     */
     private function calculatePercentage(): array
     {
         $longestByField = [];
@@ -121,7 +121,7 @@ class TableListComponent implements Component, ConstraintAwareComponent
         }
         $percentage = [];
         foreach ($longestByField as $value) {
-            $percentage[] = ceil($value * 100 / $longestLine);
+            $percentage[] = Constraint::percentage((int)ceil($value * 100 / $longestLine));
         }
 
         return $percentage;

@@ -4,12 +4,12 @@ namespace App\Message;
 
 use Symfony\Component\Messenger\Attribute\AsMessage;
 
-#[AsMessage('summary')]
+#[AsMessage(transport: 'summary')]
 final class CreateSummaryMessage
 {
 
      public function __construct(
-         public readonly string $name,
+         public readonly int $chatId,
      ) {
      }
 }

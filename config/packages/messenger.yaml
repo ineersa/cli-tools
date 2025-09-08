@@ -4,7 +4,7 @@ framework:
 
         transports:
             async:
-                dsn: '%env(MESSENGER_TRANSPORT_DSN)%'
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%&queue_name=async'
                 retry_strategy:
                     max_retries: 3           # total attempts = 1 (initial) + 3 retries
                     delay: 1000              # initial backoff delay in ms (1s)
@@ -12,7 +12,7 @@ framework:
                     max_delay: 60000         # cap backoff at 60s
                     jitter: 0.1              # +/-10% randomization to avoid thundering herds
             summary:
-                dsn: '%env(MESSENGER_TRANSPORT_DSN)%?queue_name=summary'
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%&queue_name=summary'
                 retry_strategy:
                     max_retries: 3
                     delay: 1000

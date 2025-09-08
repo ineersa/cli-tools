@@ -31,8 +31,8 @@ class StatusComponent implements Component
     public function build(): Widget
     {
         $statusLeft = ParagraphWidget::fromSpans(
-            Span::fromString($this->state->getProject()->getName()),
-            Span::styled('('.$this->state->getProject()->getWorkdir().')', Style::default()->cyan())
+            Span::fromString($this->state->getProject()?->getName() ?? ''),
+            Span::styled('('.($this->state->getProject()?->getWorkdir() ?? '') . ')', Style::default()->cyan())
         );
         $statusCenter = ParagraphWidget::fromText(Text::fromString($this->state->getMode()->value.' (Shift+Tab)')->red());
         $statusRight = ParagraphWidget::fromSpans(

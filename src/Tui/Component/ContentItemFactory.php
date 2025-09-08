@@ -47,7 +47,8 @@ class ContentItemFactory
                 text: Text::fromString($input),
                 style: Style::default()->fg(RgbColor::fromHex('#88E788')),
                 hasBorders: true,
-                borderColorHex: '#88E788'
+                borderColorHex: '#88E788',
+                originalString: $input,
             ),
             default => throw new \LogicException('Not implemented card type'),
         };

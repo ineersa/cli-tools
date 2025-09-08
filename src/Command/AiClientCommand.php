@@ -16,7 +16,8 @@ use App\Tui\Loop\LoopRunner;
 use App\Tui\State;
 use App\Tui\Utility\InputUtilities;
 use App\Tui\Utility\TerminalUtilities;
-use App\Worker\ConsumerWorker;
+use App\Worker\ConsumerAsyncWorker;
+use App\Worker\ConsumerSummaryWorker;
 use PhpTui\Term\Actions;
 use PhpTui\Term\ClearType;
 use PhpTui\Term\Terminal;
@@ -37,10 +38,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class AiClientCommand extends Command
 {
     public function __construct(
-        private readonly LoggerInterface $logger,
-        private readonly Terminal $terminal,
-        private readonly LoopRunner $loopRunner,
-        private readonly ConsumerWorker $consumerWorker,
+        private readonly LoggerInterface     $logger,
+        private readonly Terminal            $terminal,
+        private readonly LoopRunner          $loopRunner,
+        private readonly ConsumerAsyncWorker $consumerWorker,
+        private readonly ConsumerSummaryWorker $consumerSummaryWorker,
+        private readonly Agent               $agent,
     ) {
         parent::__construct();
     }
@@ -60,8 +63,9 @@ final class AiClientCommand extends Command
             $this->terminal->execute(Actions::cursorHide());
             $this->terminal->enableRawMode();
             // starting background consumer
-            $this->consumerWorker->start(uniqid('consumer_'));
-
+            $this->consumerWorker->start(uniqid('consumer_async_'));
+            $this->consumerSummaryWorker->start(uniqid('consumer_summary_'));
+            $this->agent->cleanUp();
             $this->loopRunner->boot();
 
             while (true) { // @phpstan-ignore while.alwaysTrue
@@ -76,6 +80,7 @@ final class AiClientCommand extends Command
             ]);
             throw $e;
         } finally {
+            $this->agent->cleanUp();
             $this->terminal->disableRawMode();
             $this->terminal->execute(Actions::alternateScreenDisable());
             $this->terminal->execute(Actions::cursorShow());

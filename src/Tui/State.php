@@ -266,7 +266,7 @@ class State
         return $this;
     }
 
-    public function getProject(): Project
+    public function getProject(): Project|null
     {
         return $this->project;
     }

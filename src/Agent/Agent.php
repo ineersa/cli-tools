@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Agent;
 
 use App\Entity\Chat;
+use App\Entity\Project;
 use App\Llm\LlmClient;
 use App\Service\ChatService;
 use App\Service\ProjectService;
@@ -16,7 +17,7 @@ use OpenAI;
 class Agent
 {
     private Mode $mode;
-    private ?\App\Entity\Project $project;
+    private ?Project $project;
 
     private array $activeWorkers = [];
 
@@ -54,12 +55,12 @@ class Agent
         return $this;
     }
 
-    public function getProject(): ?\App\Entity\Project
+    public function getProject(): ?Project
     {
         return $this->project;
     }
 
-    public function setProject(\App\Entity\Project $project): self
+    public function setProject(Project $project): self
     {
         $this->project = $project;
 
@@ -134,5 +135,20 @@ class Agent
             );
 
         return $this;
+    }
+
+    public function cleanUp(): void
+    {
+        $openChat = $this->chatService
+            ->getOpenChat(
+                $this->getProject()->getId(),
+                $this->getMode()
+            );
+        if ($openChat) {
+            $this->chatService
+                ->resetOpenChat($openChat);
+        }
+
+        $this->activeChat = null;
     }
 }

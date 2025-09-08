@@ -3,9 +3,9 @@ parameters:
         api_base: '%env(string:SMALL_MODEL_BASE_URL)%'
         api_key: '%env(string:SMALL_MODEL_API_KEY)%'
         model:    '%env(string:SMALL_MODEL_MODEL)%'
-        max_input_tokens: 32768
-        max_output_tokens: 32768
-        max_tokens: 32768
+        max_input_tokens: 65536
+        max_output_tokens: 65536
+        max_tokens: 65536
         supports:
             function_calling: true
             response_schema: true
@@ -17,9 +17,9 @@ parameters:
         api_base: '%env(string:LARGE_MODEL_BASE_URL)%'
         api_key: '%env(string:LARGE_MODEL_API_KEY)%'
         model:    '%env(string:LARGE_MODEL_MODEL)%'
-        max_input_tokens: 65536
-        max_output_tokens: 32768
-        max_tokens: 65536
+        max_input_tokens: 131072
+        max_output_tokens: 65536
+        max_tokens: 131072
         supports:
             function_calling: true
             response_schema: true

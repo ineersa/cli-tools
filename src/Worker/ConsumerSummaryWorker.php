@@ -13,7 +13,7 @@ use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
-final class ConsumerWorker implements WorkerInterface
+final class ConsumerSummaryWorker implements WorkerInterface
 {
     private Process $process;
 
@@ -31,7 +31,7 @@ final class ConsumerWorker implements WorkerInterface
             return;
         }
 
-        $this->process = new Process([PHP_BINARY, $this->projectDir.'/bin/console', 'messenger:consume', 'async', '--no-interaction', '--silent']);
+        $this->process = new Process([PHP_BINARY, $this->projectDir.'/bin/console', 'messenger:consume', 'summary', '--no-interaction', '--silent']);
         $this->process->setTimeout(null);
         $this->process->start();
         $this->agent->attachConsumer($requestId, $this);
@@ -43,7 +43,7 @@ final class ConsumerWorker implements WorkerInterface
         if (!$this->process->isRunning()) {
             $this->logger->info('Consumer is not running, starting it over');
             $this->start($requestId);
-            throw new ProblemException('Consumer restarted');
+            throw new ProblemException('Summary consumer restarted');
         }
     }
 
@@ -58,7 +58,7 @@ final class ConsumerWorker implements WorkerInterface
             $this->process->signal(SIGTERM);
             $this->process->wait();
             $this->agent->detachConsumer($this->requestId);
-            throw new ProblemException('Consumer process terminated.');
+            throw new ProblemException('Summary consumer process terminated.');
         }
     }
 }

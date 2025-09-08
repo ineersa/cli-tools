@@ -33,7 +33,7 @@ final class QuestionReceivedListener
             requestId: $event->requestId,
             question: $event->question,
             projectId: $this->agent->getProject()->getId(),
-            chatId: $this->agent->getActiveChat()?->getId(),
+            chatId: $this->agent->setActiveChat()->getActiveChat()?->getId(),
             mode: $this->agent->getMode(),
         ));
         $this->questionHandlerWorker->start($event->requestId, $event->question);

@@ -4,6 +4,7 @@ namespace App\Worker;
 
 use App\Agent\Agent;
 use App\Message\AssistantResponseReceived;
+use App\Message\CreateSummaryMessage;
 use App\Tui\Component\ContentItemFactory;
 use App\Tui\Component\ProgressComponent;
 use App\Tui\Exception\ProblemException;

@@ -9,7 +9,6 @@ use App\Tui\Component\TableListComponent;
 use App\Tui\Exception\CompleteException;
 use App\Tui\Exception\ProblemException;
 use App\Tui\State;
-use Symfony\Component\Serializer\SerializerInterface;
 
 class ChatListCommand
 {

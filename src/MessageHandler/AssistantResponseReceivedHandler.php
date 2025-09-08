@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
-use App\Agent\Agent;
 use App\Message\AssistantResponseReceived;
 use App\Service\ChatService;
 use Psr\Log\LoggerInterface;

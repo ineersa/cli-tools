@@ -32,9 +32,6 @@ class ChatTurn
     #[ORM\Column(type: Types::TEXT)]
     private ?string $context = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $summary_snapshot = null;
-
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $finish_reason = null;
 
@@ -97,18 +94,6 @@ class ChatTurn
     public function setContext(string $context): static
     {
         $this->context = $context;
-
-        return $this;
-    }
-
-    public function getSummarySnapshot(): ?string
-    {
-        return $this->summary_snapshot;
-    }
-
-    public function setSummarySnapshot(?string $summary_snapshot): static
-    {
-        $this->summary_snapshot = $summary_snapshot;
 
         return $this;
     }

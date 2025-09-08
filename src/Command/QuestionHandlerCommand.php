@@ -132,8 +132,9 @@ final class QuestionHandlerCommand extends Command
     }
 
     /**
-     * @param array{citations: list<mixed>, question: string} $context
+     * @param array{citations: list<mixed>, question: string}                                                                                  $context
      * @param array{messages: list<array{role: 'assistant'|'user', content: string}>, summary: string|null, turns: list<\App\Entity\ChatTurn>} $history
+     *
      * @return array{messages: list<array{role: 'assistant'|'user'|'system', content: string}>}
      */
     private function bundle(array $context, array $history): array

@@ -140,7 +140,7 @@ class Agent
         return $this;
     }
 
-    public function cleanUp(): void
+    public function cleanUpChat(): void
     {
         $openChat = $this->chatService
             ->getOpenChat(

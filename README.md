@@ -28,7 +28,8 @@ echo '{"type":"StartQuestion","requestId":"q-1","question":"Hello world"}' \
  - Docker and docker-compose
  - Add basic tools as built-in tools, like Python and browser
  - Pre hooks, will be used to prepare context
- - Context preparation, add files addition to context
+ - Context preparation, add files addition to context, packages etc.
+ - Implement project memory
  - Context preparation, implement context enrichment by prompt intentions
  - Implement Plan mode, allow plan editing, storing and so on.
  - Execution mode implementation

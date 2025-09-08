@@ -37,7 +37,7 @@ final class ProjectCreateCommand extends AbstractInteractionSessionCommand
 
         switch ($this->step) {
             case 1: // name
-                if (!preg_match('/^[a-z0-9\-]{2,}$/i', $line)) {
+                if (!preg_match('/^[a-z0-9_\-]{2,}$/i', $line)) {
                     throw new ProblemException('Name must be ≥2 chars, letters/digits/dashes.');
                 }
                 if ($this->projectService->projectRepository->findOneBy(['name' => $line])) {

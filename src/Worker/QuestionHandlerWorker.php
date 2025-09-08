@@ -76,7 +76,7 @@ final class QuestionHandlerWorker implements WorkerInterface
                     $this->state->setRequireReDrawing(true);
                     break;
                 case 'Done':
-                    $message = 'Message: ' . $msg['finishReason'] . "\n";
+                    $message = 'Message: '.$msg['finishReason']."\n";
                     if ($msg['usage']) {
                         $message .= ' Usage: '.json_encode($msg['usage'])."\n";
                     }

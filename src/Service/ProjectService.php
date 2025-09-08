@@ -8,7 +8,6 @@ use App\Entity\Project;
 use App\Repository\ProjectRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Doctrine\Persistence\ObjectRepository;
 
 class ProjectService
 {
@@ -54,19 +53,29 @@ class ProjectService
     public function delete(Project $project): void
     {
         if ($project->isDefault()) {
-            $first = $this->projectRepository->findOneBy([], ['id' => 'ASC']);
-            $first->setIsDefault(true);
+            // Choose another project (by id ASC) that is not the one being deleted
+            $candidates = $this->projectRepository->findBy([], ['id' => 'ASC']);
+            foreach ($candidates as $candidate) {
+                if ($candidate->getId() !== $project->getId()) {
+                    $candidate->setIsDefault(true);
+                    break;
+                }
+            }
         }
         $this->manager->remove($project);
         $this->manager->flush();
     }
 
-    public function update(Project $project): void
+    public function update(Project $target): void
     {
-        if ($project->isDefault()) {
-            foreach ($this->projectRepository->findAll() as $project) {
-                $project->setIsDefault(false);
+        if ($target->isDefault()) {
+            foreach ($this->projectRepository->findAll() as $other) {
+                if ($other->getId() !== $target->getId()) {
+                    $other->setIsDefault(false);
+                }
             }
+            // Ensure the target remains default
+            $target->setIsDefault(true);
         }
 
         $this->manager->flush();

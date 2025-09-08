@@ -11,7 +11,6 @@ use App\Entity\Project;
 use App\Events\ActiveChatUpdates;
 use App\Message\CreateSummaryMessage;
 use App\Repository\ChatRepository;
-use App\Repository\ChatTurnRepository;
 use App\Service\Chat\ChatStatus;
 use App\Service\Chat\ChatTurnType;
 use Doctrine\Persistence\ManagerRegistry;
@@ -179,7 +178,7 @@ class ChatService
     }
 
     /**
-     * @return array{messages: list<array{role: 'assistant'|'user', content: string}>, summary: string|null, turns: list<\App\Entity\ChatTurn>}
+     * @return array{messages: list<array{role: 'assistant'|'user', content: string}>, summary: string|null, turns: list<ChatTurn>}
      */
     public function loadHistory(Chat $chat, int $maxInputTokens): array
     {

@@ -55,7 +55,7 @@ final class AiClientCommand extends Command
             // starting background consumer
             $this->consumerWorker->start(uniqid('consumer_async_'));
             $this->consumerSummaryWorker->start(uniqid('consumer_summary_'));
-            $this->agent->cleanUp();
+            $this->agent->cleanUpChat();
             $this->loopRunner->boot();
 
             while (true) { // @phpstan-ignore while.alwaysTrue
@@ -70,7 +70,7 @@ final class AiClientCommand extends Command
             ]);
             throw $e;
         } finally {
-            $this->agent->cleanUp();
+            $this->agent->cleanUpChat();
             $this->terminal->disableRawMode();
             $this->terminal->execute(Actions::alternateScreenDisable());
             $this->terminal->execute(Actions::cursorShow());

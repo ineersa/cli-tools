@@ -51,7 +51,7 @@ class State
     private bool $requireReDrawing = false;
 
     private ?InteractionSessionInterface $interactionSession = null;
-    private Project $project;
+    private ?Project $project = null;
     private string $smallModel;
 
     public function __construct(
@@ -274,7 +274,7 @@ class State
         return $this->project;
     }
 
-    public function setProject(Project $project): self
+    public function setProject(?Project $project): self
     {
         $this->project = $project;
 

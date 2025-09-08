@@ -89,7 +89,16 @@
         ],
         "cs-fix": "vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php",
         "phpstan": "vendor/bin/phpstan analyse -c phpstan.dist.neon",
-        "tests": "vendor/bin/phpunit --colors=always --testdox"
+        "db-test-reset": [
+            "@php bin/console --env=test doctrine:schema:drop --force --full-database --quiet || exit 0",
+            "@php bin/console --env=test doctrine:schema:create --quiet"
+        ],
+        "fixtures-test-load": "@php bin/console --env=test doctrine:fixtures:load --no-interaction --quiet",
+        "tests": [
+            "@db-test-reset",
+            "@fixtures-test-load",
+            "vendor/bin/phpunit --colors=always --testdox"
+        ]
     },
     "conflict": {
         "symfony/symfony": "*"

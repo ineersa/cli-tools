@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tui\Command;
 
-use App\Tui\Application;
 use App\Tui\Component\StepComponent;
 use App\Tui\DTO\StepComponentDTO;
 use App\Tui\State;

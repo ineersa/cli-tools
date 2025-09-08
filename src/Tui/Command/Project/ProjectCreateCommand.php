@@ -18,6 +18,9 @@ use PhpTui\Tui\Style\Style;
 final class ProjectCreateCommand extends AbstractInteractionSessionCommand
 {
     public const COMMAND_TITLE = 'Create project';
+    /**
+     * @var array{name?: string|null, workdir?: string|null, is_default?: bool, instructions?: string}
+     */
     private array $data = [];
 
     public function __construct(
@@ -25,7 +28,7 @@ final class ProjectCreateCommand extends AbstractInteractionSessionCommand
         private Application $application,
         private ProjectService $projectService,
     ) {
-        parent::__construct($this->state, $this->application);
+        parent::__construct($this->state);
     }
 
     public function step(string $line): never

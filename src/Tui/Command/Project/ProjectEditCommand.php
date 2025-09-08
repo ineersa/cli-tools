@@ -33,7 +33,7 @@ final class ProjectEditCommand extends AbstractInteractionSessionCommand
         private Application $application,
         private ProjectService $projectService,
     ) {
-        parent::__construct($this->state, $this->application);
+        parent::__construct($this->state);
     }
 
     public function step(string $line): void

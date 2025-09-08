@@ -16,7 +16,6 @@ class ChatListCommand
     public function __construct(
         private readonly ChatService $chatService,
         private readonly State $state,
-        private readonly SerializerInterface $serializer,
     ) {
     }
 

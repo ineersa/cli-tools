@@ -15,7 +15,6 @@ abstract class AbstractInteractionSessionCommand implements InteractionSessionIn
 
     public function __construct(
         private State $state,
-        private Application $application,
     ) {
     }
 

@@ -24,22 +24,20 @@ class ChatService
     public const COMPRESS_THRESHOLD = 0.5;
     public readonly ChatRepository $chatRepository;
     private ?ObjectManager $manager;
-    private ChatTurnRepository $chatTurnRepository;
 
     public function __construct(
         ManagerRegistry $managerRegistry,
         private MessageBusInterface $messageBus,
         private EventDispatcherInterface $eventDispatcher,
     ) {
-        $this->chatRepository = $managerRegistry->getRepository(Chat::class);
-        $this->chatTurnRepository = $managerRegistry->getRepository(ChatTurn::class);
+        $this->chatRepository = $managerRegistry->getRepository(Chat::class); // @phpstan-ignore-line
         $this->manager = $managerRegistry->getManagerForClass(Chat::class);
     }
 
     public function createNewChat(int $projectId, string $question, Mode $mode): Chat
     {
         $chat = new Chat();
-        $chat->setProject($this->manager->getReference(Project::class, $projectId));
+        $chat->setProject($this->manager->getReference(Project::class, $projectId)); // @phpstan-ignore-line
         $chat->setTitle(substr($question, 0, min(30, \strlen($question))));
         $chat->setMode($mode);
         $chat->setStatus(ChatStatus::Open);
@@ -181,7 +179,7 @@ class ChatService
     }
 
     /**
-     * @return array{messages: string[], summary: string|null, turns: ChatTurn[]}
+     * @return array{messages: list<array{role: 'assistant'|'user', content: string}>, summary: string|null, turns: list<\App\Entity\ChatTurn>}
      */
     public function loadHistory(Chat $chat, int $maxInputTokens): array
     {

@@ -8,6 +8,7 @@ use App\Entity\Project;
 use App\Repository\ProjectRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
+use Doctrine\Persistence\ObjectRepository;
 
 class ProjectService
 {
@@ -17,7 +18,7 @@ class ProjectService
     public function __construct(
         ManagerRegistry $managerRegistry,
     ) {
-        $this->projectRepository = $managerRegistry->getRepository(Project::class);
+        $this->projectRepository = $managerRegistry->getRepository(Project::class); // @phpstan-ignore-line
         $this->manager = $managerRegistry->getManagerForClass(Project::class);
     }
 

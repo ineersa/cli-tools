@@ -20,6 +20,9 @@ class ChatRepository extends ServiceEntityRepository
         parent::__construct($registry, Chat::class);
     }
 
+    /**
+     * @return list<Chat>
+     */
     public function findByProjectActiveFirst(Project $project): array
     {
         return $this->createQueryBuilder('c')

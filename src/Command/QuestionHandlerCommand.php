@@ -17,7 +17,10 @@ use Symfony\Component\Console\Output\OutputInterface;
 #[AsCommand(name: 'app:question-handler')]
 final class QuestionHandlerCommand extends Command
 {
-    private array $finalUsage;
+    /**
+     * @var array{promptTokens:int, completionTokens:int, totalTokens:int}|null
+     */
+    private ?array $finalUsage = null;
 
     private mixed $tool = null;
     private ?Chat $chat;
@@ -84,7 +87,7 @@ final class QuestionHandlerCommand extends Command
                 $this->emit($output, ['type' => 'StreamDelta', 'requestId' => $rid, 'delta' => $delta]);
             });
 
-            $this->emit($output, ['type' => 'Citations', 'requestId' => $rid, 'items' => $context['citations'] ?? []]);
+            $this->emit($output, ['type' => 'Citations', 'requestId' => $rid, 'items' => $context['citations']]);
             $this->emit($output, [
                 'type' => 'Done', 'requestId' => $rid, 'finishReason' => 'done',
                 'usage' => $this->finalUsage, 'tool' => $this->tool,
@@ -93,6 +96,8 @@ final class QuestionHandlerCommand extends Command
 
             return Command::SUCCESS;
         } catch (\Throwable $e) {
+            $this->logger->error($e->getMessage(), ['trace' => $e->getTrace()]);
+
             $this->emit($output, ['type' => 'Error', 'requestId' => $rid, 'code' => $e->getCode(), 'message' => $e->getMessage()]);
 
             return Command::FAILURE;
@@ -104,6 +109,9 @@ final class QuestionHandlerCommand extends Command
         return true === $this->terminate;
     }
 
+    /**
+     * @param array<string, mixed> $msg
+     */
     private function emit(OutputInterface $out, array $msg): void
     {
         $line = json_encode($msg, \JSON_UNESCAPED_UNICODE)."\n";
@@ -111,6 +119,9 @@ final class QuestionHandlerCommand extends Command
         fflush(\STDOUT);
     }
 
+    /**
+     * @return array{citations: list<mixed>, question: string}
+     */
     private function collectContext(string $question): array
     {
         // TODO: enrich with mode/project metadata and future citations
@@ -120,13 +131,19 @@ final class QuestionHandlerCommand extends Command
         ];
     }
 
+    /**
+     * @param array{citations: list<mixed>, question: string} $context
+     * @param array{messages: list<array{role: 'assistant'|'user', content: string}>, summary: string|null, turns: list<\App\Entity\ChatTurn>} $history
+     * @return array{messages: list<array{role: 'assistant'|'user'|'system', content: string}>}
+     */
     private function bundle(array $context, array $history): array
     {
         $systemPrompt = $this->buildSystemPrompt();
 
+        /** @var list<array{role: 'assistant'|'user'|'system', content: string}> $messages */
         $messages = [];
         $messages[] = ['role' => 'system', 'content' => $systemPrompt];
-        foreach ($history['messages'] ?? [] as $m) {
+        foreach ($history['messages'] as $m) {
             $messages[] = $m;
         }
 
@@ -146,6 +163,9 @@ final class QuestionHandlerCommand extends Command
         ];
     }
 
+    /**
+     * @param array{messages: list<array{role: 'assistant'|'user'|'system', content: string}>} $params
+     */
     private function streamOpenAI(array $params, callable $onDelta): void
     {
         foreach ($this->agent->largeModel->completionStreamed($params) as $event) {

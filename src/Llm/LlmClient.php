@@ -12,6 +12,9 @@ final readonly class LlmClient
 {
     private readonly OpenAI\Client $openAIClient;
 
+    /**
+     * @param array<string, bool> $supports
+     */
     public function __construct(
         private string $apiBase,
         private string $apiKey,

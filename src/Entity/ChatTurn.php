@@ -20,7 +20,7 @@ class ChatTurn
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    private ?int $id = null;
+    private int $id;
 
     #[ORM\ManyToOne(inversedBy: 'chatTurns')]
     #[ORM\JoinColumn(nullable: false)]
@@ -56,6 +56,13 @@ class ChatTurn
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function setId(int $id): static
+    {
+        $this->id = $id;
+
+        return $this;
     }
 
     public function getChat(): ?Chat

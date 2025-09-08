@@ -16,7 +16,7 @@ final class ProjectChangedListener
     }
 
     #[AsEventListener(event: ProjectChangedEvent::class)]
-    public function onProjectChangedEvent($event): void
+    public function onProjectChangedEvent(ProjectChangedEvent $event): void
     {
         $this->agent->setProject($event->project);
     }

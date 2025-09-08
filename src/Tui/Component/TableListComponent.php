@@ -24,7 +24,7 @@ class TableListComponent implements Component, ConstraintAwareComponent
     private int $selected = 0;
 
     /**
-     * @param non-empty-array<string, mixed> $data
+     * @param non-empty-array<int, mixed> $data
      */
     public function __construct(
         private State $state,

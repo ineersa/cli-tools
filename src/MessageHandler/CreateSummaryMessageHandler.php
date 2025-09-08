@@ -44,7 +44,7 @@ final class CreateSummaryMessageHandler
                 'content' => 'Conversation so far (previous summary): '.$chat->getSummary(),
             ];
         }
-        foreach ($history['messages'] ?? [] as $m) {
+        foreach ($history['messages'] as $m) {
             $messages[] = $m;
         }
         $messages[] = [

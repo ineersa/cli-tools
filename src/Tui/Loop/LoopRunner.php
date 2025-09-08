@@ -8,6 +8,9 @@ use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
 
 final readonly class LoopRunner
 {
+    /**
+     * @var iterable<TimerProviderInterface>
+     */
     private iterable $providers;
 
     /**

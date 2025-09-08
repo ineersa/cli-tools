@@ -16,7 +16,6 @@ final class AssistantResponseReceivedHandler
     public function __construct(
         private LoggerInterface $logger,
         private ChatService $chatService,
-        private Agent $agent,
     ) {
     }
 

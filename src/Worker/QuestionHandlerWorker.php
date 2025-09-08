@@ -76,7 +76,7 @@ final class QuestionHandlerWorker implements WorkerInterface
                     $this->state->setRequireReDrawing(true);
                     break;
                 case 'Done':
-                    $message = 'Message: '.$msg['finishReason'] ?? 'stop'."\n";
+                    $message = 'Message: ' . $msg['finishReason'] . "\n";
                     if ($msg['usage']) {
                         $message .= ' Usage: '.json_encode($msg['usage'])."\n";
                     }
@@ -128,6 +128,9 @@ final class QuestionHandlerWorker implements WorkerInterface
         }
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
     private function pump(): array
     {
         $out = $this->process->getIncrementalOutput();

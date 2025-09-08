@@ -17,8 +17,14 @@ class Agent
     private Mode $mode;
     private ?Project $project;
 
+    /**
+     * @var array<string, WorkerInterface>
+     */
     private array $activeWorkers = [];
 
+    /**
+     * @var array<string, WorkerInterface>
+     */
     private array $consumers = [];
 
     private ?Chat $activeChat = null;

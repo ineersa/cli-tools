@@ -17,9 +17,9 @@ final class AssistantResponseReceived
         public Mode $mode,
         public ?int $chatId = null,
         public ?string $finishReason = null,
-        public ?string $promptTokens = null,
-        public ?string $completionTokens = null,
-        public ?string $totalTokens = null,
+        public ?int $promptTokens = null,
+        public ?int $completionTokens = null,
+        public ?int $totalTokens = null,
     ) {
     }
 }

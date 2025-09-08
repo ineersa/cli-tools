@@ -6,21 +6,26 @@ use App\Agent\Mode;
 use App\Entity\Chat;
 use App\Entity\ChatTurn;
 use App\Entity\Project;
+use App\Llm\Limits;
 use App\Repository\ChatRepository;
 use App\Repository\ChatTurnRepository;
 use App\Service\Chat\ChatStatus;
 use App\Service\Chat\ChatTurnType;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 class ChatService
 {
     public readonly ChatRepository $chatRepository;
+
+    public const COMPRESS_THRESHOLD = 0.5;
     private ?ObjectManager $manager;
     private ChatTurnRepository $chatTurnRepository;
 
     public function __construct(
         ManagerRegistry $managerRegistry,
+        private MessageBusInterface $messageBus,
     ) {
         $this->chatRepository = $managerRegistry->getRepository(Chat::class);
         $this->chatTurnRepository = $managerRegistry->getRepository(ChatTurn::class);
@@ -114,4 +119,38 @@ class ChatService
         $this->manager->flush();
         $this->manager->refresh($chat);
     }
+
+    /**
+     * @param Chat $chat
+     * @param int $maxInputTokens
+     * @return array{messages: string[], summary: null|string, turns: ChatTurn[]}
+     */
+    public function loadHistory(Chat $chat, int $maxInputTokens): array
+    {
+        $threshold = (int) floor($maxInputTokens * self::COMPRESS_THRESHOLD);
+
+        $turns = $chat->getChatTurns()->toArray();
+        // descending, I will reverse it later
+        usort($turns, function($a, $b) {
+            return ($b->getIdx() <=> $a->getIdx());
+        });
+
+        $messages = [];
+        $summary = null;
+        $usage = 0;
+        foreach ($turns as $turn) {
+            // TODO exclude tool turns?
+            $role = $turn->getType() === ChatTurnType::User ? 'user' : 'assistant';
+            $messages[] = ['role' => $role, 'content' => $turn->getContext() ?? ''];
+            $usage += (int)floor((strlen($turn->getContext() ?? '') / 4));
+            if ($usage >= $threshold) {
+                $messages = array_reverse($messages);
+                $summary = $chat->getSummary();
+                break;
+            }
+        }
+
+        return ['messages' => $messages, 'summary' => $summary, 'turns' => $turns];
+    }
+
 }

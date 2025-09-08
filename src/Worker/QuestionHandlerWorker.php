@@ -30,17 +30,17 @@ final class QuestionHandlerWorker implements WorkerInterface
         private MessageBusInterface $messageBus,
     ) {}
 
-    public function start(string $requestId, string $question, array $opts = []): void
+    public function start(string $requestId, string $question): void
     {
         if (isset($this->process) && $this->process->isRunning()) {
             throw new ProblemException("Question handling process is already running.");
         }
+        // TODO this should be DTO and serialized
         $payload = json_encode([
             'type' => 'StartQuestion',
             'requestId' => $requestId,
             'chatId' => $this->agent->getActiveChat()?->getId(),
             'question' => $question,
-            'opts' => $opts,
         ], JSON_UNESCAPED_UNICODE);
 
         $this->contentItemIdx = -1;
@@ -51,7 +51,7 @@ final class QuestionHandlerWorker implements WorkerInterface
         $input->write($payload . "\n");
         $input->close();
         $this->process->setInput($input);
-        $this->process->start(); // non-blocking
+        $this->process->start();
         $this->agent->attachWorker($requestId, $this);
     }
 
@@ -102,7 +102,7 @@ final class QuestionHandlerWorker implements WorkerInterface
                     throw new ProblemException($msg['message'] ?? 'Unknown');
             }
         }
-        // push content item once
+
         $item = ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $this->responseBuffer);
         $item->height = 0;
         if ($this->contentItemIdx === -1) {
@@ -114,8 +114,8 @@ final class QuestionHandlerWorker implements WorkerInterface
 
     private function pump(): array
     {
-        $out = $this->process->getIncrementalOutput();   // grabs new stdout
-        $err = $this->process->getIncrementalErrorOutput(); // optional: surface errors to a log
+        $out = $this->process->getIncrementalOutput();
+        $err = $this->process->getIncrementalErrorOutput();
 
         if ($err !== '') {
             $this->logger->error('Question handler worker error!', [

@@ -11,6 +11,14 @@ framework:
                     multiplier: 3.0          # exponential factor: 1s, 3s, 9s
                     max_delay: 60000         # cap backoff at 60s
                     jitter: 0.1              # +/-10% randomization to avoid thundering herds
+            summary:
+                dsn: '%env(MESSENGER_TRANSPORT_DSN)%?queue_name=summary'
+                retry_strategy:
+                    max_retries: 3
+                    delay: 1000
+                    multiplier: 3.0
+                    max_delay: 60000
+                    jitter: 0.1
             failed: 'doctrine://default?queue_name=failed'
 
         routing:

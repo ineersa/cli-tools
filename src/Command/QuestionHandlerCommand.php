@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Agent\Agent;
+use App\Entity\Chat;
+use App\Llm\Limits;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use App\Service\ChatService;
+use App\Service\Chat\ChatTurnType;
 
 #[AsCommand(name: 'app:question-handler')]
 final class QuestionHandlerCommand extends Command
@@ -17,10 +21,14 @@ final class QuestionHandlerCommand extends Command
     private array $finalUsage;
 
     private mixed $tool = null;
+    private null|Chat $chat;
+
+
 
     public function __construct(
-        private Agent           $agent,
-        private LoggerInterface $logger,
+        private Agent                $agent,
+        private LoggerInterface      $logger,
+        private readonly ChatService $chatService,
     ) {
         parent::__construct();
     }
@@ -48,30 +56,40 @@ final class QuestionHandlerCommand extends Command
 
         $rid = (string)$msg['requestId'];
         $question = (string)$msg['question'];
+        $chatId = $msg['chatId'] ?? null;
+        $this->chat = $chatId ? $this->chatService->chatRepository->find($chatId) : null;
+
         try {
             $this->emit($output, ['type' => 'Ack', 'requestId' => $rid]);
 
             $this->emit($output, ['type' => 'Progress', 'requestId' => $rid, 'phase' => 'collect_context', 'pct' => 10]);
-            $ctx = $this->collectContext($question);
+            $context = $this->collectContext($question);
             if ($this->checkTerminate()) return Command::SUCCESS;
 
             $this->emit($output, ['type' => 'Progress', 'requestId' => $rid, 'phase' => 'load_history', 'pct' => 30]);
-            $hist = $this->loadHistory($question);
-            if ($this->checkTerminate()) return Command::SUCCESS;
+            $history = ['messages' => [], 'summary' => null, 'turns' => []];
+            if ($this->chat) {
+                $history = $this->chatService->loadHistory($this->chat, $this->agent->largeModel->getLimit(Limits::MaxInputTokens));
+            }
 
-            $params = $this->bundle($ctx, $hist);
+            if ($this->checkTerminate()) {
+                return Command::SUCCESS;
+            }
+
+            $params = $this->bundle($context, $history);
             $this->emit($output, ['type' => 'Progress', 'requestId' => $rid, 'phase' => 'llm', 'pct' => 60]);
 
             $this->streamOpenAI($params, function (string $delta) use ($output, $rid) {
                 $this->emit($output, ['type' => 'StreamDelta', 'requestId' => $rid, 'delta' => $delta]);
             });
 
-            $this->emit($output, ['type' => 'Citations', 'requestId' => $rid, 'items' => $ctx['citations'] ?? []]);
+            $this->emit($output, ['type' => 'Citations', 'requestId' => $rid, 'items' => $context['citations'] ?? []]);
             $this->emit($output, [
                 'type' => 'Done', 'requestId' => $rid, 'finishReason' => 'done',
                 'usage' => $this->finalUsage, 'tool' => $this->tool
                 ]
             );
+
             return Command::SUCCESS;
         } catch (\Throwable $e) {
             $this->emit($output, ['type' => 'Error', 'requestId' => $rid, 'code' => $e->getCode(), 'message' => $e->getMessage()]);
@@ -86,44 +104,43 @@ final class QuestionHandlerCommand extends Command
 
     private function emit(OutputInterface $out, array $msg): void
     {
-        // Write NDJSON; flush to make sure UI sees it immediately
         $line = json_encode($msg, JSON_UNESCAPED_UNICODE) . "\n";
-        // Use STDOUT directly to avoid buffering surprises:
         \fwrite(STDOUT, $line);
         \fflush(STDOUT);
     }
 
     private function collectContext(string $question): array {
+        // TODO: enrich with mode/project metadata and future citations
         return [
             'citations' => [],
-            'question' => $question
+            'question' => $question,
         ];
     }
-    private function loadHistory(string $q): array {
-        return [];
-    }
-    private function bundle(array $ctx, array $hist): array
-    {
-        // TODO add history later
-        // TODO add system prompt depending on mode
-        // TODO add citations data to context
-        $params = [
-            'messages' => [
-                [
-                    'role' => 'system', 'content' =>
-                    "You may think privately (analysis channel), but DO NOT hide tool calls there.\n".
-                    "If a tool is needed, emit a single tool call via the OpenAI tool_calls interface.\n".
-                    "Never place tool calls inside <|channel|>analysis<|message|>.\n".
-                    "If a tool is not needed, emit a final assistant answer."
-                ],
-                [
-                    'role' => 'user',
-                    'content' => $ctx['question']
-                ]
-            ],
-        ];
 
-        return $params;
+    private function bundle(array $context, array $history): array
+    {
+        $systemPrompt = $this->buildSystemPrompt();
+
+        $messages = [];
+        $messages[] = ['role' => 'system', 'content' => $systemPrompt];
+        foreach ($history['messages'] ?? [] as $m) {
+            $messages[] = $m;
+        }
+
+        if ($history['summary'] ?? null) {
+            $messages[] = [
+                'role' => 'system',
+                'content' => sprintf('Conversation summary: %s', $history['summary']),
+            ];
+        }
+
+        $messages[] = ['role' => 'user', 'content' => $context['question']];
+
+        return [
+            'messages' => $messages,
+            // 'tools' => [], // TODO: future tool schemas
+            // 'tool_choice' => 'auto',
+        ];
     }
 
     private function streamOpenAI(array $params, callable $onDelta): void
@@ -135,7 +152,7 @@ final class QuestionHandlerCommand extends Command
              }
              $tc = $event->choices[0]->delta->toolCalls[0] ?? null;
              if ($tc) {
-                $this->tool = $tc;
+                $this->tool = $tc; // TODO: future: dispatch tool execution
              }
              if ($event->usage !== null) {
                  $this->finalUsage = [
@@ -146,5 +163,14 @@ final class QuestionHandlerCommand extends Command
              }
              if ($this->checkTerminate()) return;
          }
+    }
+
+    private function buildSystemPrompt(): string
+    {
+
+        // Minimal guardrail; TODO: mode-aware and project-aware instructions
+        return "You are a helpful assistant for a CLI tools project.
+        Be concise and accurate.
+        If context is insufficient, ask clarifying questions.";
     }
 }

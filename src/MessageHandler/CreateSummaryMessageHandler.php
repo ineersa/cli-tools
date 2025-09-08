@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\MessageHandler;
 
 use App\Agent\Agent;
@@ -39,7 +41,7 @@ final class CreateSummaryMessageHandler
         if ($chat->getSummary()) {
             $messages[] = [
                 'role' => 'system',
-                'content' => 'Conversation so far (previous summary): ' . $chat->getSummary(),
+                'content' => 'Conversation so far (previous summary): '.$chat->getSummary(),
             ];
         }
         foreach ($history['messages'] ?? [] as $m) {
@@ -52,20 +54,19 @@ final class CreateSummaryMessageHandler
 
         $response = $this->agent->smallModel->completion(
             [
-                'messages' => $messages
+                'messages' => $messages,
             ]
         );
         $choice = $response->choices[0] ?? null;
         $content = trim($choice->message->content ?? '');
 
-        if ($content === '') {
+        if ('' === $content) {
             $this->logger->error('Empty content received', [
                 'chatId' => $chat->getId(),
-                'finishReason' => $choice->finishReason ?? 'UNKNOWN'
+                'finishReason' => $choice->finishReason ?? 'UNKNOWN',
             ]);
             throw new \RuntimeException('Summarizer returned empty content');
         }
-
 
         $chat->setSummary($response->choices[0]->message->content);
         $this->chatService->updateChat($chat);

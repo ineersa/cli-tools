@@ -1,19 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\EventListener;
 
 use App\Agent\Agent;
-use \App\Events\ActiveChatUpdates;
-use App\Tui\State;
+use App\Events\ActiveChatUpdates;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
-use Symfony\Component\Messenger\MessageBusInterface;
 
 final class ActiveChatUpdatesListener
 {
     public function __construct(
         private Agent $agent,
     ) {
-
     }
 
     #[AsEventListener(event: ActiveChatUpdates::class)]

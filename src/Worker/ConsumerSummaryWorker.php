@@ -1,16 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Worker;
 
 use App\Agent\Agent;
-use App\Tui\Component\ContentItemFactory;
-use App\Tui\Component\ProblemComponent;
-use App\Tui\Component\ProgressComponent;
 use App\Tui\Exception\ProblemException;
-use App\Tui\State;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
-use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 
 final class ConsumerSummaryWorker implements WorkerInterface
@@ -18,12 +15,14 @@ final class ConsumerSummaryWorker implements WorkerInterface
     private Process $process;
 
     private string $requestId;
+
     public function __construct(
         #[Autowire('%kernel.project_dir%')]
         private readonly string $projectDir,
         private LoggerInterface $logger,
         private Agent $agent,
-    ) {}
+    ) {
+    }
 
     public function start(string $requestId): void
     {
@@ -31,7 +30,7 @@ final class ConsumerSummaryWorker implements WorkerInterface
             return;
         }
 
-        $this->process = new Process([PHP_BINARY, $this->projectDir.'/bin/console', 'messenger:consume', 'summary', '--no-interaction', '--silent']);
+        $this->process = new Process([\PHP_BINARY, $this->projectDir.'/bin/console', 'messenger:consume', 'summary', '--no-interaction', '--silent']);
         $this->process->setTimeout(null);
         $this->process->start();
         $this->agent->attachConsumer($requestId, $this);
@@ -55,7 +54,7 @@ final class ConsumerSummaryWorker implements WorkerInterface
     public function stop(): void
     {
         if ($this->process->isRunning()) {
-            $this->process->signal(SIGTERM);
+            $this->process->signal(\SIGTERM);
             $this->process->wait();
             $this->agent->detachConsumer($this->requestId);
             throw new ProblemException('Summary consumer process terminated.');

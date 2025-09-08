@@ -1,20 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
+use App\Agent\Mode;
 use App\Repository\ChatRepository;
+use App\Service\Chat\ChatStatus;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use \App\Agent\Mode;
-use \App\Service\Chat\ChatStatus;
-use \App\Entity\Project;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
-use \App\Entity\ChatTurn;
 
 #[ORM\Entity(repositoryClass: ChatRepository::class)]
-#[ORM\Index(name: "chat_status_mode_idx", columns: ["status", "mode"])]
+#[ORM\Index(name: 'chat_status_mode_idx', columns: ['status', 'mode'])]
 class Chat
 {
     use TimestampableEntity;

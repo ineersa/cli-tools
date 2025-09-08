@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Repository;
 
 use App\Entity\Chat;
@@ -29,7 +31,5 @@ class ChatRepository extends ServiceEntityRepository
             ->addOrderBy('c.id', 'DESC')
             ->getQuery()
             ->getResult();
-
     }
-
 }

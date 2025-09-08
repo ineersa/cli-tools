@@ -8,14 +8,12 @@ use App\Agent\Agent;
 use App\Events\QuestionReceivedEvent;
 use App\Message\QuestionReceivedMessage;
 use App\Tui\Exception\ProblemException;
-use App\Tui\State;
 use App\Worker\QuestionHandlerWorker;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 final class QuestionReceivedListener
 {
-
     public function __construct(
         private MessageBusInterface $messageBus,
         private Agent $agent,

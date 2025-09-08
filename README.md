@@ -17,12 +17,13 @@ echo '{"type":"StartQuestion","requestId":"q-1","question":"Hello world"}' \
 ```
 
 ## Roadmap
- - Terminal UI interface 
- - Basic UI commands implementation
- - Implement projects system, connect database to store chats etc.
+ - ~~Terminal UI interface~~ 
+ - ~~Basic UI commands implementation~~
+ - ~~Implement projects system, connect database to store chats etc.~~
  - Settings inside project directory
- - OpenAI compatible models for chat, test with just llama.cpp and LiteLLM
- - Implement model switching between small and big models
+ - Prompts and per project instructions
+ - ~~OpenAI compatible models for chat, test with just llama.cpp and LiteLLM~~
+ - ~~Implement model choose between small and big models~~
  - MCP tools calling, implement in chat first, MCP tools filtering
  - Docker and docker-compose
  - Add basic tools as built-in tools, like Python and browser

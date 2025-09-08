@@ -11,8 +11,6 @@ use App\Service\ChatService;
 use App\Service\ProjectService;
 use App\Tui\Exception\ProblemException;
 use App\Worker\WorkerInterface;
-use http\Exception\RuntimeException;
-use OpenAI;
 
 class Agent
 {
@@ -31,8 +29,8 @@ class Agent
     public function __construct(
         public readonly LlmClient $smallModel,
         public readonly LlmClient $largeModel,
-        ProjectService            $projectService,
-        private ChatService               $chatService,
+        ProjectService $projectService,
+        private ChatService $chatService,
     ) {
         $this->mode = Mode::getDefaultMode();
         $this->project = $projectService->getDefaultProject();
@@ -71,7 +69,6 @@ class Agent
     {
         return $this->smallModel->getModel();
     }
-
 
     public function pollWorkers(): void
     {
@@ -112,7 +109,7 @@ class Agent
     public function attachConsumer(string $requestId, WorkerInterface $worker): void
     {
         if (isset($this->consumers[$requestId])) {
-            throw new ProblemException('Already attached consumer with requestId = '. $requestId);
+            throw new ProblemException('Already attached consumer with requestId = '.$requestId);
         }
         $this->consumers[$requestId] = $worker;
     }

@@ -6,24 +6,14 @@ namespace App\Command;
 
 use App\Agent\Agent;
 use App\Agent\Mode;
-use App\Tui\Application;
-use App\Tui\Command\Runner;
-use App\Tui\Component\ProblemComponent;
 use App\Tui\Exception\ExitInterruptException;
-use App\Tui\Exception\ProblemException;
 use App\Tui\Exception\UserInterruptException;
 use App\Tui\Loop\LoopRunner;
-use App\Tui\State;
-use App\Tui\Utility\InputUtilities;
-use App\Tui\Utility\TerminalUtilities;
 use App\Worker\ConsumerAsyncWorker;
 use App\Worker\ConsumerSummaryWorker;
 use PhpTui\Term\Actions;
 use PhpTui\Term\ClearType;
 use PhpTui\Term\Terminal;
-use PhpTui\Tui\Bridge\PhpTerm\PhpTermBackend as PhpTuiPhpTermBackend;
-use PhpTui\Tui\DisplayBuilder;
-use PhpTui\Tui\Extension\Bdf\BdfExtension;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -38,12 +28,12 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class AiClientCommand extends Command
 {
     public function __construct(
-        private readonly LoggerInterface     $logger,
-        private readonly Terminal            $terminal,
-        private readonly LoopRunner          $loopRunner,
+        private readonly LoggerInterface $logger,
+        private readonly Terminal $terminal,
+        private readonly LoopRunner $loopRunner,
         private readonly ConsumerAsyncWorker $consumerWorker,
         private readonly ConsumerSummaryWorker $consumerSummaryWorker,
-        private readonly Agent               $agent,
+        private readonly Agent $agent,
     ) {
         parent::__construct();
     }

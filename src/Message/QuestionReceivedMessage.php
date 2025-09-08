@@ -16,5 +16,6 @@ final class QuestionReceivedMessage
         public readonly ?Mode $mode = null,
         /** @var array<string,mixed> */
         public readonly array $opts = [],
-    ) {}
+    ) {
+    }
 }

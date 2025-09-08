@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tui\Command\Chat;
 
-use App\Agent\Agent;
 use App\Service\ChatService;
 use App\Tui\Exception\CompleteException;
 use App\Tui\Exception\ProblemException;

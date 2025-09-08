@@ -22,7 +22,6 @@ use App\Tui\Exception\ProblemException;
 use App\Tui\Exception\UserInterruptException;
 use App\Tui\Utility\InputUtilities;
 use App\Tui\Utility\TerminalUtilities;
-use App\Worker\QuestionHandlerWorker;
 use PhpTui\Term\Event\CharKeyEvent;
 use PhpTui\Term\Event\CodedKeyEvent;
 use PhpTui\Term\KeyModifiers;
@@ -124,7 +123,7 @@ final class Application
                     $input = $this->state->getInput();
                     $this->state->pushContentItem(ContentItemFactory::make(ContentItemFactory::USER_CARD, $input));
                     $this->clearInput();
-                    $this->eventDispatcher->dispatch(new QuestionReceivedEvent(uniqid("q_"), $input));
+                    $this->eventDispatcher->dispatch(new QuestionReceivedEvent(uniqid('q_'), $input));
                     continue;
                 }
                 // Processing char here because it's used later for input and autocomplete

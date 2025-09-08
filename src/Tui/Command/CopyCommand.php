@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tui\Command;
 
-use App\Tui\Component\ContentItem;
 use App\Tui\Component\ContentItemFactory;
 use App\Tui\Exception\CompleteException;
 use App\Tui\Exception\ProblemException;
@@ -27,7 +26,7 @@ class CopyCommand implements CommandInterface
     {
         $contentItems = $this->state->getContentItems();
         for ($i = \count($contentItems) - 1; $i >= 0; --$i) {
-            if (in_array($contentItems[$i]->type, [ContentItemFactory::COMMAND_CARD, ContentItemFactory::RESPONSE_CARD])) {
+            if (\in_array($contentItems[$i]->type, [ContentItemFactory::COMMAND_CARD, ContentItemFactory::RESPONSE_CARD])) {
                 Clipboard::copy($contentItems[$i]->originalString);
                 throw new CompleteException('/copy');
             }

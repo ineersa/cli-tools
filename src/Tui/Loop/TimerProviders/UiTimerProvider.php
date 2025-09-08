@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Loop\TimerProviders;
 
 use App\Tui\Application;
@@ -17,10 +19,11 @@ use PhpTui\Tui\Extension\Bdf\BdfExtension;
 final readonly class UiTimerProvider implements TimerProviderInterface
 {
     public function __construct(
-        private Terminal    $terminal,
+        private Terminal $terminal,
         private Application $app,
-        private State       $state,
-    ) {}
+        private State $state,
+    ) {
+    }
 
     public function register(Scheduler $scheduler): void
     {

@@ -11,7 +11,6 @@ use App\Tui\State;
 
 class ChatRestoreCommand
 {
-
     public function __construct(
         private readonly ChatService $chatService,
         private readonly State $state,

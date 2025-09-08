@@ -16,8 +16,7 @@ final class QuestionReceivedMessageHandler
     public function __construct(
         private LoggerInterface $logger,
         private ChatService $chatService,
-    )
-    {
+    ) {
     }
 
     public function __invoke(QuestionReceivedMessage $message): void
@@ -32,8 +31,8 @@ final class QuestionReceivedMessageHandler
         ]);
         if ($chatId = $message->chatId) {
             $chat = $this->chatService->chatRepository->find($chatId);
-            if ($chat === null) {
-                throw new UnrecoverableMessageHandlingException('No chat with id ' . $chatId);
+            if (null === $chat) {
+                throw new UnrecoverableMessageHandlingException('No chat with id '.$chatId);
             }
         } else {
             $chat = $this->chatService->createNewChat(

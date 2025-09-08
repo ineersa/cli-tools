@@ -1,10 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Worker;
 
 use App\Agent\Agent;
 use App\Message\AssistantResponseReceived;
-use App\Message\CreateSummaryMessage;
 use App\Tui\Component\ContentItemFactory;
 use App\Tui\Component\ProgressComponent;
 use App\Tui\Exception\ProblemException;
@@ -29,12 +30,13 @@ final class QuestionHandlerWorker implements WorkerInterface
         private State $state,
         private Agent $agent,
         private MessageBusInterface $messageBus,
-    ) {}
+    ) {
+    }
 
     public function start(string $requestId, string $question): void
     {
         if (isset($this->process) && $this->process->isRunning()) {
-            throw new ProblemException("Question handling process is already running.");
+            throw new ProblemException('Question handling process is already running.');
         }
         // TODO this should be DTO and serialized
         $payload = json_encode([
@@ -42,14 +44,14 @@ final class QuestionHandlerWorker implements WorkerInterface
             'requestId' => $requestId,
             'chatId' => $this->agent->getActiveChat()?->getId(),
             'question' => $question,
-        ], JSON_UNESCAPED_UNICODE);
+        ], \JSON_UNESCAPED_UNICODE);
 
         $this->contentItemIdx = -1;
         $this->responseBuffer = '';
-        $this->process = new Process([PHP_BINARY, $this->projectDir.'/bin/console', 'app:question-handler']);
+        $this->process = new Process([\PHP_BINARY, $this->projectDir.'/bin/console', 'app:question-handler']);
         $this->process->setTimeout(null);
         $input = new InputStream();
-        $input->write($payload . "\n");
+        $input->write($payload."\n");
         $input->close();
         $this->process->setInput($input);
         $this->process->start();
@@ -67,24 +69,23 @@ final class QuestionHandlerWorker implements WorkerInterface
                     break;
                 case 'Progress':
                     $this->state->setDynamicIslandComponents([
-                        ProgressComponent::NAME => new ProgressComponent($msg['phase'] ?? 'unknown', $this->state),
+                        ProgressComponent::NAME => new ProgressComponent(
+                            $msg['phase'] ?? 'unknown', $this->state
+                        ),
                     ]);
                     $this->state->setRequireReDrawing(true);
                     break;
-                case 'Citations':
-                    // TODO push citations?
-                    break;
                 case 'Done':
-                    $message = "Message: " . $msg['finishReason'] ?? 'stop' . "\n";
+                    $message = 'Message: '.$msg['finishReason'] ?? 'stop'."\n";
                     if ($msg['usage']) {
-                        $message .= " Usage: " . json_encode($msg['usage']) . "\n";
+                        $message .= ' Usage: '.json_encode($msg['usage'])."\n";
                     }
                     $this->state->setDynamicIslandComponents([
                         ProgressComponent::NAME => new ProgressComponent($message, $this->state),
                     ]);
                     $this->agent->detachWorker($requestId);
                     $message = new AssistantResponseReceived(
-                        projectId: (int)$this->agent->getProject()?->getId(),
+                        projectId: (int) $this->agent->getProject()?->getId(),
                         requestId: $requestId,
                         response: $this->responseBuffer,
                         mode: $this->agent->getMode(),
@@ -106,38 +107,11 @@ final class QuestionHandlerWorker implements WorkerInterface
 
         $item = ContentItemFactory::make(ContentItemFactory::RESPONSE_CARD, $this->responseBuffer);
         $item->height = 0;
-        if ($this->contentItemIdx === -1) {
+        if (-1 === $this->contentItemIdx) {
             $this->contentItemIdx = $this->state->pushContentItem($item);
         } else {
             $this->state->pushContentItem($item, $this->contentItemIdx);
         }
-    }
-
-    private function pump(): array
-    {
-        $out = $this->process->getIncrementalOutput();
-        $err = $this->process->getIncrementalErrorOutput();
-
-        if ($err !== '') {
-            $this->logger->error('Question handler worker error!', [
-                'error' => $err,
-            ]);
-            throw new ProblemException($err);
-        }
-        if ($out !== '') {
-            $this->buffer .= $out;
-        }
-
-        $messages = [];
-        while (($pos = strpos($this->buffer, "\n")) !== false) {
-            $line = substr($this->buffer, 0, $pos);
-            $this->buffer = substr($this->buffer, $pos + 1);
-            if ($line === '') continue;
-            $msg = json_decode($line, true);
-            if (is_array($msg)) $messages[] = $msg;
-        }
-
-        return $messages;
     }
 
     public function isRunning(): bool
@@ -148,9 +122,40 @@ final class QuestionHandlerWorker implements WorkerInterface
     public function stop(): void
     {
         if ($this->process->isRunning()) {
-            $this->process->signal(SIGTERM);
+            $this->process->signal(\SIGTERM);
             $this->process->wait();
             throw new ProblemException('Process terminated.');
         }
+    }
+
+    private function pump(): array
+    {
+        $out = $this->process->getIncrementalOutput();
+        $err = $this->process->getIncrementalErrorOutput();
+
+        if ('' !== $err) {
+            $this->logger->error('Question handler worker error!', [
+                'error' => $err,
+            ]);
+            throw new ProblemException($err);
+        }
+        if ('' !== $out) {
+            $this->buffer .= $out;
+        }
+
+        $messages = [];
+        while (($pos = strpos($this->buffer, "\n")) !== false) {
+            $line = substr($this->buffer, 0, $pos);
+            $this->buffer = substr($this->buffer, $pos + 1);
+            if ('' === $line) {
+                continue;
+            }
+            $msg = json_decode($line, true);
+            if (\is_array($msg)) {
+                $messages[] = $msg;
+            }
+        }
+
+        return $messages;
     }
 }

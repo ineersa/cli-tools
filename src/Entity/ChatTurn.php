@@ -1,17 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Entity;
 
 use App\Repository\ChatTurnRepository;
+use App\Service\Chat\ChatTurnType;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
-use \App\Entity\Chat;
-use \App\Service\Chat\ChatTurnType;
 use Gedmo\Timestampable\Traits\TimestampableEntity;
 
 #[ORM\Entity(repositoryClass: ChatTurnRepository::class)]
-#[ORM\Index(name: "chat_turn_idx_idx", columns: ["idx"])]
-#[ORM\Index(name: "chat_turn_request_id_idx", columns: ["request_id"])]
+#[ORM\Index(name: 'chat_turn_idx_idx', columns: ['idx'])]
+#[ORM\Index(name: 'chat_turn_request_id_idx', columns: ['request_id'])]
 class ChatTurn
 {
     use TimestampableEntity;

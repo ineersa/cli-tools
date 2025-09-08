@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Agent;
 
-use Symfony\Component\Yaml\Yaml;
 use Symfony\Component\Yaml\Exception\ParseException;
+use Symfony\Component\Yaml\Yaml;
 
 class PromptManager
 {
-    private string $promptsDir = __DIR__ . '/prompts';
+    private string $promptsDir = __DIR__.'/prompts';
 
     public function __construct()
     {
@@ -17,7 +19,7 @@ class PromptManager
     {
         $file = $this->promptsDir.'/summarizer.yaml';
         if (!is_file($file)) {
-            throw new \RuntimeException(sprintf('Summarizer prompt file not found at %s', $file));
+            throw new \RuntimeException(\sprintf('Summarizer prompt file not found at %s', $file));
         }
 
         try {
@@ -26,7 +28,7 @@ class PromptManager
             throw new \RuntimeException('Failed to parse summarizer.yaml: '.$e->getMessage(), previous: $e);
         }
 
-        if (!is_array($data) || !isset($data['system_prompt'])) {
+        if (!\is_array($data) || !isset($data['system_prompt'])) {
             throw new \RuntimeException('summarizer.yaml is missing required "system_prompt" key');
         }
 

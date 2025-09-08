@@ -54,7 +54,7 @@ class TableListComponent implements Component, ConstraintAwareComponent
             ->rows(...array_map(function (array $data) {
                 return TableRow::fromCells(
                     ...array_map(function (mixed $value) {
-                        return TableCell::fromString((string)$value);
+                        return TableCell::fromString((string) $value);
                     }, $data)
                 );
             }, $this->data));
@@ -121,7 +121,7 @@ class TableListComponent implements Component, ConstraintAwareComponent
         }
         $percentage = [];
         foreach ($longestByField as $value) {
-            $percentage[] = Constraint::percentage((int)ceil($value * 100 / $longestLine));
+            $percentage[] = Constraint::percentage((int) ceil($value * 100 / $longestLine));
         }
 
         return $percentage;

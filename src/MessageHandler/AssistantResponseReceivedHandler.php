@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\MessageHandler;
 
 use App\Agent\Agent;
@@ -11,7 +13,6 @@ use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 #[AsMessageHandler]
 final class AssistantResponseReceivedHandler
 {
-
     public function __construct(
         private LoggerInterface $logger,
         private ChatService $chatService,
@@ -33,7 +34,7 @@ final class AssistantResponseReceivedHandler
             'totalTokens' => $message->totalTokens,
         ]);
 
-        if ($message->chatId === null) {
+        if (null === $message->chatId) {
             $chat = $this->chatService->getOpenChat(
                 $message->projectId,
                 $message->mode

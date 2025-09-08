@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tui\Component;
 
-use App\Tui\Exception\ProblemException;
 use App\Tui\State;
 use PhpTui\Term\Event;
 use PhpTui\Tui\Color\AnsiColor;

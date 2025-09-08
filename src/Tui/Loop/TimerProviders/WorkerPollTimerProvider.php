@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Loop\TimerProviders;
 
 use App\Agent\Agent;
@@ -14,7 +16,8 @@ final readonly class WorkerPollTimerProvider implements TimerProviderInterface
     public function __construct(
         private Agent $agent,
         private State $state,
-    ) {}
+    ) {
+    }
 
     public function register(Scheduler $scheduler): void
     {

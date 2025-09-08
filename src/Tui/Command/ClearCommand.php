@@ -34,7 +34,6 @@ class ClearCommand implements CommandInterface
             $this->agent->setActiveChat();
         }
 
-
         throw new CompleteException("/clear \n Chat reset.");
     }
 }

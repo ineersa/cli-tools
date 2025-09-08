@@ -186,22 +186,25 @@ class State
 
     public function pushContentItem(ContentItem $contentWidget, ?int $index = null): int
     {
-        if ($index === null) {
+        if (null === $index) {
             $this->contentItems[] = $contentWidget;
+
             return array_key_last($this->contentItems);
         }
 
-        $count = count($this->contentItems);
+        $count = \count($this->contentItems);
         if ($index < 0) {
             $index = 0;
         }
 
         if ($index < $count) {
             array_splice($this->contentItems, $index, 1, [$contentWidget]);
+
             return $index;
         }
 
         $this->contentItems[] = $contentWidget;
+
         return array_key_last($this->contentItems);
     }
 
@@ -266,7 +269,7 @@ class State
         return $this;
     }
 
-    public function getProject(): Project|null
+    public function getProject(): ?Project
     {
         return $this->project;
     }

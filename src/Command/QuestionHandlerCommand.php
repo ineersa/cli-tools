@@ -7,13 +7,12 @@ namespace App\Command;
 use App\Agent\Agent;
 use App\Entity\Chat;
 use App\Llm\Limits;
+use App\Service\ChatService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use App\Service\ChatService;
-use App\Service\Chat\ChatTurnType;
 
 #[AsCommand(name: 'app:question-handler')]
 final class QuestionHandlerCommand extends Command
@@ -21,52 +20,54 @@ final class QuestionHandlerCommand extends Command
     private array $finalUsage;
 
     private mixed $tool = null;
-    private null|Chat $chat;
-
-
+    private ?Chat $chat;
+    private bool $terminate = false;
 
     public function __construct(
-        private Agent                $agent,
-        private LoggerInterface      $logger,
+        private Agent $agent,
+        private LoggerInterface $logger,
         private readonly ChatService $chatService,
     ) {
         parent::__construct();
     }
-    private bool $terminate = false;
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        if (function_exists('pcntl_async_signals')) {
+        if (\function_exists('pcntl_async_signals')) {
             pcntl_async_signals(true);
-            pcntl_signal(SIGTERM, function () {
+            pcntl_signal(\SIGTERM, function () {
                 $this->terminate = true;
             });
         }
 
-        $line = fgets(STDIN);
-        if ($line === false) {
+        $line = fgets(\STDIN);
+        if (false === $line) {
             $this->emit($output, ['type' => 'Error', 'code' => 'EMPTY_INPUT', 'message' => 'No payload']);
+
             return Command::FAILURE;
         }
         $msg = json_decode(trim($line), true);
-        if (!is_array($msg) || ($msg['type'] ?? '') !== 'StartQuestion') {
+        if (!\is_array($msg) || ($msg['type'] ?? '') !== 'StartQuestion') {
             $this->emit($output, ['type' => 'Error', 'code' => 'BAD_INPUT', 'message' => 'Invalid payload']);
+
             return Command::FAILURE;
         }
 
-        $rid = (string)$msg['requestId'];
-        $question = (string)$msg['question'];
+        $rid = (string) $msg['requestId'];
+        $question = (string) $msg['question'];
         $chatId = $msg['chatId'] ?? null;
         $this->chat = $chatId ? $this->chatService->chatRepository->find($chatId) : null;
 
         try {
             $this->emit($output, ['type' => 'Ack', 'requestId' => $rid]);
 
-            $this->emit($output, ['type' => 'Progress', 'requestId' => $rid, 'phase' => 'collect_context', 'pct' => 10]);
+            $this->emit($output, ['type' => 'Progress', 'requestId' => $rid, 'phase' => 'Collect context']);
             $context = $this->collectContext($question);
-            if ($this->checkTerminate()) return Command::SUCCESS;
+            if ($this->checkTerminate()) {
+                return Command::SUCCESS;
+            }
 
-            $this->emit($output, ['type' => 'Progress', 'requestId' => $rid, 'phase' => 'load_history', 'pct' => 30]);
+            $this->emit($output, ['type' => 'Progress', 'requestId' => $rid, 'phase' => 'Loading history']);
             $history = ['messages' => [], 'summary' => null, 'turns' => []];
             if ($this->chat) {
                 $history = $this->chatService->loadHistory($this->chat, $this->agent->largeModel->getLimit(Limits::MaxInputTokens));
@@ -77,7 +78,7 @@ final class QuestionHandlerCommand extends Command
             }
 
             $params = $this->bundle($context, $history);
-            $this->emit($output, ['type' => 'Progress', 'requestId' => $rid, 'phase' => 'llm', 'pct' => 60]);
+            $this->emit($output, ['type' => 'Progress', 'requestId' => $rid, 'phase' => 'Sending request to LLM']);
 
             $this->streamOpenAI($params, function (string $delta) use ($output, $rid) {
                 $this->emit($output, ['type' => 'StreamDelta', 'requestId' => $rid, 'delta' => $delta]);
@@ -86,30 +87,32 @@ final class QuestionHandlerCommand extends Command
             $this->emit($output, ['type' => 'Citations', 'requestId' => $rid, 'items' => $context['citations'] ?? []]);
             $this->emit($output, [
                 'type' => 'Done', 'requestId' => $rid, 'finishReason' => 'done',
-                'usage' => $this->finalUsage, 'tool' => $this->tool
-                ]
+                'usage' => $this->finalUsage, 'tool' => $this->tool,
+            ]
             );
 
             return Command::SUCCESS;
         } catch (\Throwable $e) {
             $this->emit($output, ['type' => 'Error', 'requestId' => $rid, 'code' => $e->getCode(), 'message' => $e->getMessage()]);
+
             return Command::FAILURE;
         }
     }
 
     private function checkTerminate(): bool
     {
-        return $this->terminate === true;
+        return true === $this->terminate;
     }
 
     private function emit(OutputInterface $out, array $msg): void
     {
-        $line = json_encode($msg, JSON_UNESCAPED_UNICODE) . "\n";
-        \fwrite(STDOUT, $line);
-        \fflush(STDOUT);
+        $line = json_encode($msg, \JSON_UNESCAPED_UNICODE)."\n";
+        fwrite(\STDOUT, $line);
+        fflush(\STDOUT);
     }
 
-    private function collectContext(string $question): array {
+    private function collectContext(string $question): array
+    {
         // TODO: enrich with mode/project metadata and future citations
         return [
             'citations' => [],
@@ -130,7 +133,7 @@ final class QuestionHandlerCommand extends Command
         if ($history['summary'] ?? null) {
             $messages[] = [
                 'role' => 'system',
-                'content' => sprintf('Conversation summary: %s', $history['summary']),
+                'content' => \sprintf('Conversation summary: %s', $history['summary']),
             ];
         }
 
@@ -145,32 +148,33 @@ final class QuestionHandlerCommand extends Command
 
     private function streamOpenAI(array $params, callable $onDelta): void
     {
-         foreach ($this->agent->largeModel->completionStreamed($params) as $event) {
-             $delta = $event->choices[0]->delta->content ?? '';
-             if ($delta !== '') {
-                 $onDelta($delta);
-             }
-             $tc = $event->choices[0]->delta->toolCalls[0] ?? null;
-             if ($tc) {
+        foreach ($this->agent->largeModel->completionStreamed($params) as $event) {
+            $delta = $event->choices[0]->delta->content ?? '';
+            if ('' !== $delta) {
+                $onDelta($delta);
+            }
+            $tc = $event->choices[0]->delta->toolCalls[0] ?? null;
+            if ($tc) {
                 $this->tool = $tc; // TODO: future: dispatch tool execution
-             }
-             if ($event->usage !== null) {
-                 $this->finalUsage = [
-                     'promptTokens'     => $event->usage->promptTokens,
-                     'completionTokens' => $event->usage->completionTokens,
-                     'totalTokens'      => $event->usage->totalTokens,
-                 ];
-             }
-             if ($this->checkTerminate()) return;
-         }
+            }
+            if (null !== $event->usage) {
+                $this->finalUsage = [
+                    'promptTokens' => $event->usage->promptTokens,
+                    'completionTokens' => $event->usage->completionTokens,
+                    'totalTokens' => $event->usage->totalTokens,
+                ];
+            }
+            if ($this->checkTerminate()) {
+                return;
+            }
+        }
     }
 
     private function buildSystemPrompt(): string
     {
-
         // Minimal guardrail; TODO: mode-aware and project-aware instructions
-        return "You are a helpful assistant for a CLI tools project.
+        return 'You are a helpful assistant for a CLI tools project.
         Be concise and accurate.
-        If context is insufficient, ask clarifying questions.";
+        If context is insufficient, ask clarifying questions.';
     }
 }

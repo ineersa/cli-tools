@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tui\Loop;
 
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -13,7 +15,7 @@ final readonly class LoopRunner
      */
     public function __construct(
         #[AutowireIterator('app.tui.loop.timer_provider')] iterable $providers,
-        private Scheduler                                           $scheduler = new Scheduler()
+        private Scheduler $scheduler = new Scheduler(),
     ) {
         $this->providers = $providers;
     }

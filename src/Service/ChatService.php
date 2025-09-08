@@ -1,14 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service;
 
-use App\Agent\Agent;
 use App\Agent\Mode;
 use App\Entity\Chat;
 use App\Entity\ChatTurn;
 use App\Entity\Project;
 use App\Events\ActiveChatUpdates;
-use App\Llm\Limits;
 use App\Message\CreateSummaryMessage;
 use App\Repository\ChatRepository;
 use App\Repository\ChatTurnRepository;
@@ -16,22 +16,20 @@ use App\Service\Chat\ChatStatus;
 use App\Service\Chat\ChatTurnType;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
 
 class ChatService
 {
-    public readonly ChatRepository $chatRepository;
-
     public const COMPRESS_THRESHOLD = 0.5;
+    public readonly ChatRepository $chatRepository;
     private ?ObjectManager $manager;
     private ChatTurnRepository $chatTurnRepository;
 
     public function __construct(
-        ManagerRegistry             $managerRegistry,
+        ManagerRegistry $managerRegistry,
         private MessageBusInterface $messageBus,
-        private EventDispatcherInterface         $eventDispatcher,
+        private EventDispatcherInterface $eventDispatcher,
     ) {
         $this->chatRepository = $managerRegistry->getRepository(Chat::class);
         $this->chatTurnRepository = $managerRegistry->getRepository(ChatTurn::class);
@@ -42,7 +40,7 @@ class ChatService
     {
         $chat = new Chat();
         $chat->setProject($this->manager->getReference(Project::class, $projectId));
-        $chat->setTitle(substr($question, 0, min(30, strlen($question))));
+        $chat->setTitle(substr($question, 0, min(30, \strlen($question))));
         $chat->setMode($mode);
         $chat->setStatus(ChatStatus::Open);
 
@@ -87,8 +85,8 @@ class ChatService
         ?string $finishReason = null,
         ?int $promptTokens = null,
         ?int $completionTokens = null,
-        ?int $totalTokens = null
-    ) : ChatTurn {
+        ?int $totalTokens = null,
+    ): ChatTurn {
         $chatTurn = new ChatTurn();
         $chatTurn->setChat($chat);
         $chatTurn->setType(ChatTurnType::Assistant);
@@ -135,7 +133,7 @@ class ChatService
 
     public function deleteChat(Chat $chat): void
     {
-        if ($chat->getLastTurn() !== null) {
+        if (null !== $chat->getLastTurn()) {
             $chat->setLastTurn(null);
             $this->manager->flush();
         }
@@ -169,7 +167,7 @@ class ChatService
         $chats = $this->chatRepository->findBy(['project' => $projectId]);
         $count = 0;
         foreach ($chats as $chat) {
-            if ($chat->getLastTurn() !== null) {
+            if (null !== $chat->getLastTurn()) {
                 $chat->setLastTurn(null);
             }
             $this->manager->remove($chat);
@@ -178,22 +176,21 @@ class ChatService
         // One flush handles both nulling last_turn and removals
         $this->manager->flush();
         $this->eventDispatcher->dispatch(new ActiveChatUpdates());
+
         return $count;
     }
 
     /**
-     * @param Chat $chat
-     * @param int $maxInputTokens
-     * @return array{messages: string[], summary: null|string, turns: ChatTurn[]}
+     * @return array{messages: string[], summary: string|null, turns: ChatTurn[]}
      */
     public function loadHistory(Chat $chat, int $maxInputTokens): array
     {
         $threshold = (int) floor($maxInputTokens * self::COMPRESS_THRESHOLD);
-        $threshold = $threshold * 0.9; // adding small cushion in case our estimates are wrong
+        $threshold *= 0.9; // adding small cushion in case our estimates are wrong
         $turns = $chat->getChatTurns()->toArray();
         // descending, i will reverse it later
-        usort($turns, function($a, $b) {
-            return ($b->getIdx() <=> $a->getIdx());
+        usort($turns, function ($a, $b) {
+            return $b->getIdx() <=> $a->getIdx();
         });
 
         $messages = [];
@@ -201,10 +198,10 @@ class ChatService
         $usage = 0;
         foreach ($turns as $turn) {
             // TODO exclude tool turns?
-            $role = $turn->getType() === ChatTurnType::User ? 'user' : 'assistant';
+            $role = ChatTurnType::User === $turn->getType() ? 'user' : 'assistant';
             $messages[] = ['role' => $role, 'content' => $turn->getContext() ?? ''];
             // very rough estimate
-            $usage += (int)floor((mb_strlen($turn->getContext() ?? '') / 4));
+            $usage += (int) floor(mb_strlen($turn->getContext() ?? '') / 4);
             if ($usage >= $threshold) {
                 $messages = array_reverse($messages);
                 $summary = $chat->getSummary();
@@ -221,6 +218,7 @@ class ChatService
         if (null !== $chat) {
             $this->manager->refresh($chat);
         }
+
         return $chat;
     }
 }

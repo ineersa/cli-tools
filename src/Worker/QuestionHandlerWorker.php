@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Worker;
 
 use App\Agent\Agent;
-use App\Message\AssistantResponseReceived;
+use App\Message\AssistantResponseReceivedMessage;
 use App\Tui\Component\ContentItemFactory;
 use App\Tui\Component\ProgressComponent;
 use App\Tui\Exception\ProblemException;
@@ -84,7 +84,7 @@ final class QuestionHandlerWorker implements WorkerInterface
                         ProgressComponent::NAME => new ProgressComponent($message, $this->state),
                     ]);
                     $this->agent->detachWorker($requestId);
-                    $message = new AssistantResponseReceived(
+                    $message = new AssistantResponseReceivedMessage(
                         projectId: (int) $this->agent->getProject()?->getId(),
                         requestId: $requestId,
                         response: $this->responseBuffer,

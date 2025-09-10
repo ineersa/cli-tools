@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace App\Llm;
 
 use OpenAI;
+use OpenAI\Contracts\ClientContract;
 use OpenAI\Responses\Chat\CreateStreamedResponse;
 use OpenAI\Responses\StreamResponse;
 
-final readonly class LlmClient
+final class LlmClient
 {
-    private readonly OpenAI\Client $openAIClient;
+    private ?ClientContract $openAIClient = null;
 
     /**
      * @param array<string, bool> $supports
@@ -24,10 +25,28 @@ final readonly class LlmClient
         private int $maxTokens,
         private array $supports,
     ) {
-        $this->openAIClient = \OpenAI::factory()
+    }
+
+    protected function buildOpenAIClient(): ClientContract
+    {
+        return \OpenAI::factory()
             ->withApiKey($this->apiKey)
             ->withBaseUri($this->apiBase)
             ->make();
+    }
+
+    public function setOpenAIClient(ClientContract $openAIClient): void
+    {
+        $this->openAIClient = $openAIClient;
+    }
+
+    private function client(): ClientContract
+    {
+        if (null === $this->openAIClient) {
+            $this->openAIClient = $this->buildOpenAIClient();
+        }
+
+        return $this->openAIClient;
     }
 
     public function getModel(): string
@@ -61,7 +80,7 @@ final readonly class LlmClient
     {
         $parameters['model'] = $this->model;
 
-        return $this->openAIClient->chat()->create($parameters);
+        return $this->client()->chat()->create($parameters);
     }
 
     /**
@@ -77,6 +96,6 @@ final readonly class LlmClient
     {
         $parameters['model'] = $this->model;
 
-        return $this->openAIClient->chat()->createStreamed($parameters);
+        return $this->client()->chat()->createStreamed($parameters);
     }
 }

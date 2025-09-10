@@ -8,7 +8,7 @@ use App\Agent\Mode;
 use Symfony\Component\Messenger\Attribute\AsMessage;
 
 #[AsMessage('async')]
-final class AssistantResponseReceived
+final class AssistantResponseReceivedMessage
 {
     public function __construct(
         public int $projectId,

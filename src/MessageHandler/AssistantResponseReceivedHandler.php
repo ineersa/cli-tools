@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\MessageHandler;
 
-use App\Message\AssistantResponseReceived;
+use App\Message\AssistantResponseReceivedMessage;
 use App\Service\ChatService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
@@ -18,7 +18,7 @@ final class AssistantResponseReceivedHandler
     ) {
     }
 
-    public function __invoke(AssistantResponseReceived $message): void
+    public function __invoke(AssistantResponseReceivedMessage $message): void
     {
         $this->logger->info('[AssistantResponseReceivedHandler] message received', [
             'requestId' => $message->requestId,

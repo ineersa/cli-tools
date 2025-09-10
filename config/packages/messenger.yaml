@@ -28,11 +28,5 @@ when@test:
     framework:
         messenger:
             transports:
-                async:
-                    dsn: 'in-memory://'
-                    retry_strategy:
-                        max_retries: 3
-                        delay: 1
-                        multiplier: 1.0
-                        max_delay: 10
-                        jitter: 0.0
+                async: 'test://'
+                summary: 'test://'
